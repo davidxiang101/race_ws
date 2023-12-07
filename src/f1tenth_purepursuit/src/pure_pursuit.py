@@ -177,21 +177,19 @@ def purepursuit_control_node(data):
         steering_angle = 100
     if steering_angle < -STEERING_RANGE:
         steering_angle = -100
-    if (abs(steering_angle)>40):
-        steering_angle = steering_angle * 1.2
     command.steering_angle = steering_angle
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
     max_speed = 35.0
     min_speed = 15.0
-    error = (1 - (abs(steering_angle) / 60))
+    error = (1 - (abs(steering_angle) / STEERING_RANGE))
     print("error: ", error)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
     command.speed = min(max_speed, dynamic_speed)
     command.speed = max(min_speed, dynamic_speed)
     command.speed = dynamic_speed
     print("dynamic speed: ", dynamic_speed)
-    print("actual speed: ", command.speed)
+
     command_pub.publish(command)
 
     # Visualization code
