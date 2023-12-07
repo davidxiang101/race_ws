@@ -190,8 +190,8 @@ def purepursuit_control_node(data):
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
     max_speed = 55.0
-    min_speed = 15.0
-    error = (1 - (abs(steering_angle) / STEERING_RANGE))
+    min_speed = 10.0
+    error = (1 - (abs(command.steering_angle) / STEERING_RANGE))
     print("error: ", error)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
     command.speed = min(max_speed, dynamic_speed)
