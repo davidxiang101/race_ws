@@ -91,6 +91,7 @@ STEERING_RANGE = 100.0
 WHEELBASE_LEN       = 0.325
 
 def purepursuit_control_node(data):
+    start_time = rospy.get_time()
     # publish reference path for RVI
     global raceline
     raceline_pub.publish(raceline)
@@ -189,8 +190,8 @@ def purepursuit_control_node(data):
     print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
-    max_speed = 70.0
-    min_speed = 10.0
+    max_speed = 65.0
+    min_speed = 25.0
     error = (1 - (abs(command.steering_angle) / STEERING_RANGE))
     print("error: ", error)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
@@ -256,6 +257,8 @@ def purepursuit_control_node(data):
     steering_marker.color.g = 1.0
 
     steering_marker_pub.publish(steering_marker)
+
+    print("Elapsed: ", (rospy.get_time()-start_time) * 1000)
 
 if __name__ == '__main__':
 
