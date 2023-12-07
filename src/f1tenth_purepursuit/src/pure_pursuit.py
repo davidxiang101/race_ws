@@ -133,7 +133,7 @@ def purepursuit_control_node(data):
     
     #print(base_proj_idx)
     # TODO 2: You need to tune the value of the lookahead_distance
-    lookahead_distance = 1.875
+    lookahead_distance = 2.0
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
     # This target point should be determined based on the path and the base projection you have already calculated.
@@ -189,7 +189,7 @@ def purepursuit_control_node(data):
     print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
-    max_speed = 55.0
+    max_speed = 70.0
     min_speed = 10.0
     error = (1 - (abs(command.steering_angle) / STEERING_RANGE))
     print("error: ", error)
