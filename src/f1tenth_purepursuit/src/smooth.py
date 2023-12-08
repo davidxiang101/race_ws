@@ -156,16 +156,22 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 
     # Plotting
     plt.figure(figsize=(12, 6))
-    plt.plot(x_original, y_original, "o", label="Original Points")
-    plt.plot(x_high_res, y_high_res, label="High-Resolution Smoothed Raceline")
 
-    # Highlight braking zones
+    # Plot original points
+    plt.plot(x_original, y_original, "o", label="Original Points", zorder=1)
+
+    # Plot high-resolution smoothed raceline
+    plt.plot(
+        x_high_res, y_high_res, label="High-Resolution Smoothed Raceline", zorder=2
+    )
+
+    # Highlight braking zones (drawn on top with higher zorder)
     for idx in braking_zones:
-        plt.scatter(x_high_res[idx], y_high_res[idx], color="red", s=20)
+        plt.scatter(x_high_res[idx], y_high_res[idx], color="red", s=20, zorder=3)
 
-    # Highlight acceleration zones
+    # Highlight acceleration zones (drawn on top with higher zorder)
     for idx in acceleration_zones:
-        plt.scatter(x_high_res[idx], y_high_res[idx], color="green", s=20)
+        plt.scatter(x_high_res[idx], y_high_res[idx], color="green", s=20, zorder=3)
 
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
