@@ -17,75 +17,16 @@ def calculate_curvature(x, y):
     return curvature
 
 
-def calculate_differential_curvature(curvature):
-    return np.gradient(curvature)
+def speed_from_curvature(curvature, min_speed, max_speed):
+    # Assuming higher curvature demands lower speed
+    # This function maps curvature values to speed, inversely proportional
+    normalized_curvature = curvature / np.max(curvature)  # Normalizing
+    return min_speed + (max_speed - min_speed) * (1 - normalized_curvature)
 
 
-def identify_turn_zones(
-    curvature, differential_curvature, curvature_threshold, diff_curvature_threshold
-):
-    turning_points = []
-    apex_points = []
-    end_turn_points = []
-    in_turn = False
-
-    for i in range(1, len(curvature) - 1):
-        # Detecting the start of a turn
-        if (
-            curvature[i] > curvature_threshold
-            and differential_curvature[i] > diff_curvature_threshold
-            and not in_turn
-        ):
-            turning_points.append(i)
-            in_turn = True
-
-        # Detecting the apex of the turn
-        if (
-            in_turn
-            and (differential_curvature[i] < 0 and differential_curvature[i - 1] >= 0)
-            or (differential_curvature[i] > 0 and differential_curvature[i - 1] <= 0)
-        ):
-            apex_points.append(i)
-
-        # Detecting the end of a turn
-        if (
-            in_turn
-            and curvature[i] < curvature_threshold
-            and differential_curvature[i] < diff_curvature_threshold
-        ):
-            end_turn_points.append(i)
-            in_turn = False
-
-    return turning_points, apex_points, end_turn_points
-
-
-def create_speed_profile(
-    curvature, turning_points, apex_points, min_speed, max_speed, brake_zone_length
-):
-    speed_profile = np.full(len(curvature), max_speed)
-    braking_zones = []
-    acceleration_zones = []
-
-    for turn in turning_points:
-        for i in range(
-            turn - brake_zone_length, turn
-        ):  # Example: start slowing down brake_zone_length points before the turn
-            speed_profile[i] = np.interp(
-                i, [turn - brake_zone_length, turn], [max_speed, min_speed]
-            )
-            braking_zones.append(i)
-
-    for apex in apex_points:
-        for i in range(
-            apex, apex + brake_zone_length
-        ):  # Example: start speeding up brake_zone_length points after the apex
-            if i < len(speed_profile):
-                speed_profile[i] = np.interp(
-                    i, [apex, apex + brake_zone_length], [min_speed, max_speed]
-                )
-                acceleration_zones.append(i)
-
-    return speed_profile, braking_zones, acceleration_zones
+def create_speed_profile(curvature, min_speed, max_speed):
+    speed_profile = speed_from_curvature(curvature, min_speed, max_speed)
+    return speed_profile
 
 
 def smooth_path(x, y, sigma=3):
@@ -139,20 +80,8 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
     # Assuming you have curvature data
     curvature = calculate_curvature(x_high_res, y_high_res)
 
-    # Calculate differential curvature
-    differential_curvature = calculate_differential_curvature(curvature)
-    print(curvature)
+    speed_profile = create_speed_profile(curvature, 0.0, 1.0)
 
-    # Update turn detection
-    curvature_threshold = 0.2
-    diff_curvature_threshold = 0.05
-    turning_points, apex_points, end_turn_points = identify_turn_zones(
-        curvature, differential_curvature, curvature_threshold, diff_curvature_threshold
-    )
-
-    speed_profile, braking_zones, acceleration_zones = create_speed_profile(
-        curvature, turning_points, apex_points, 0.0, 1.0, 20
-    )
     smoothed_raceline["speed_factor"] = speed_profile
 
     # Plotting
@@ -165,14 +94,6 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
     plt.plot(
         x_high_res, y_high_res, label="High-Resolution Smoothed Raceline", zorder=2
     )
-
-    # Highlight braking zones (drawn on top with higher zorder)
-    for idx in braking_zones:
-        plt.scatter(x_high_res[idx], y_high_res[idx], color="red", s=20, zorder=3)
-
-    # Highlight acceleration zones (drawn on top with higher zorder)
-    for idx in acceleration_zones:
-        plt.scatter(x_high_res[idx], y_high_res[idx], color="green", s=20, zorder=3)
 
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
