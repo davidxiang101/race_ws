@@ -39,6 +39,9 @@ goal_pub            = rospy.Publisher('/goal', Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
+max_speed = 60.0
+min_speed = 25.0
+prev_speed = 0.0
 
 wp_seq          = 0
 control_polygon = PolygonStamped()
@@ -134,7 +137,13 @@ def purepursuit_control_node(data):
     
     #print(base_proj_idx)
     # TODO 2: You need to tune the value of the lookahead_distance
-    lookahead_distance = 2.0
+    # lookahead_distance = 1.83
+    base_distance = 1.6
+    max_distance = 1.8
+    global prev_speed
+    lookahead_distance = base_distance + ((prev_speed / max_speed) * (max_distance - base_distance))
+
+
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
     # This target point should be determined based on the path and the base projection you have already calculated.
@@ -186,18 +195,19 @@ def purepursuit_control_node(data):
         print("\n\n\n\n\n\n\n\n\nEXCEED TURNING\n\n\n\n\n\n\n")
 
     
-    command.steering_angle = steering_angle * 10 / 3
+    command.steering_angle = steering_angle * (10.0 / 3.0)
     print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
-    max_speed = 65.0
-    min_speed = 25.0
+    global max_speed
+    global min_speed
     error = (1 - (abs(command.steering_angle) / STEERING_RANGE))
     print("error: ", error)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
     command.speed = min(max_speed, dynamic_speed)
     command.speed = max(min_speed, dynamic_speed)
     command.speed = dynamic_speed
+    prev_speed = dynamic_speed
     print("dynamic speed: ", dynamic_speed)
 
     command_pub.publish(command)
