@@ -3,6 +3,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 
 def calculate_curvature(x, y):
@@ -22,6 +23,19 @@ def speed_from_curvature(curvature, min_speed, max_speed):
     # This function maps curvature values to speed, inversely proportional
     normalized_curvature = curvature / np.max(curvature)  # Normalizing
     return min_speed + (max_speed - min_speed) * (1 - normalized_curvature)
+
+
+def calculate_future_curvature(curvature, lookahead_distance):
+    # Rolling window to look ahead on the curvature array
+    future_curvature = np.roll(curvature, -lookahead_distance)
+    return future_curvature
+
+
+def create_advanced_speed_profile(curvature, min_speed, max_speed, lookahead_distance):
+    # Adjusting speed based on future curvature
+    future_curvature = calculate_future_curvature(curvature, lookahead_distance)
+    speed_profile = speed_from_curvature(future_curvature, min_speed, max_speed)
+    return speed_profile
 
 
 def create_speed_profile(curvature, min_speed, max_speed):
@@ -79,8 +93,11 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 
     # Assuming you have curvature data
     curvature = calculate_curvature(x_high_res, y_high_res)
+    lookahead_distance = 20  # Adjust this based on your track and car dynamics
 
-    speed_profile = create_speed_profile(curvature, 0.0, 1.0)
+    speed_profile = create_advanced_speed_profile(
+        curvature, 0.0, 1.0, lookahead_distance
+    )
 
     smoothed_raceline["speed_factor"] = speed_profile
 
@@ -90,14 +107,19 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
     # Plot original points
     plt.plot(x_original, y_original, "o", label="Original Points", zorder=1)
 
-    # Plot high-resolution smoothed raceline
-    plt.plot(
-        x_high_res, y_high_res, label="High-Resolution Smoothed Raceline", zorder=2
+    # High-resolution smoothed raceline with speed factor coloring
+    speed_factors = smoothed_raceline["speed_factor"]
+    scatter = plt.scatter(
+        x_high_res, y_high_res, c=speed_factors, cmap=cm.gist_rainbow, zorder=2
     )
+
+    # Create a colorbar for the speed factor
+    cbar = plt.colorbar(scatter)
+    cbar.set_label("Speed Factor")
 
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
-    plt.title("High-Resolution Raceline with Braking and Acceleration Zones")
+    plt.title("High-Resolution Raceline with Speed Factor Coloring")
     plt.legend()
     plt.grid(True)
     plt.show()

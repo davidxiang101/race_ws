@@ -53,6 +53,7 @@ prev_speed = 0.0
 
 # tune this
 speed_lookahead = 0.5
+speed_factors = []
 
 wp_seq = 0
 control_polygon = PolygonStamped()
@@ -68,10 +69,13 @@ def construct_path():
     )
     # file_path = os.path.expanduser('~/map_ws/src/raceline.csv'.format(trajectory_name))
 
+    global speed_factors
+
     with open(file_path) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=",")
         for waypoint in csv_reader:
-            plan.append(waypoint)
+            plan.append(waypoint[:4])  # x, y, z, w
+            speed_factors.append(float(waypoint[4]))  # Speed factor
 
     # Convert string coordinates to floats and calculate path resolution
     for index in range(0, len(plan)):
@@ -114,16 +118,12 @@ def purepursuit_control_node(data):
     start_time = rospy.get_time()
     # publish reference path for RVI
     global raceline
-    raceline_pub.publish(raceline)
-    # Main control function for pure pursuit algorithm
-
-    # Create an empty ackermann drive message that we will populate later with the desired steering angle and speed.
-    command = AckermannDrive()
-
     global wp_seq
     global curr_polygon
 
-    # Obtain the current position of the race car from the inferred_pose message
+    raceline_pub.publish(raceline)
+    command = AckermannDrive()
+
     odom_x = data.pose.position.x
     odom_y = data.pose.position.y
 
@@ -144,6 +144,7 @@ def purepursuit_control_node(data):
             base_proj_pos = (x, y)  # only x, y
             base_proj_idx = idx
     pose_x, pose_y = base_proj_pos
+
     # Calculate heading angle of the car (in radians)
     heading = tf.transformations.euler_from_quaternion(
         (
@@ -153,18 +154,17 @@ def purepursuit_control_node(data):
             data.pose.orientation.w,
         )
     )[2]
-    print("heading: ", heading)
 
     # print(base_proj_idx)
     # TODO 2: You need to tune the value of the lookahead_distance
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    base_distance = 1.6
-    max_distance = 1.8
+    BASE_DISTANCE = 1.6
+    MAX_DISTANCE = 1.8
     global prev_speed
-    lookahead_distance = base_distance + (
-        (prev_speed / max_speed) * (max_distance - base_distance)
+    lookahead_distance = BASE_DISTANCE + (
+        (prev_speed / max_speed) * (MAX_DISTANCE - BASE_DISTANCE)
     )
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
@@ -182,7 +182,6 @@ def purepursuit_control_node(data):
         goal_idx = goal_idx % len(path_resolution)
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
-    print(goal_idx)
 
     # TODO 4: Implement the pure pursuit algorithm to compute the steering angle given the pose of the car, target point, and lookahead distance.
     # Your code here
@@ -222,8 +221,13 @@ def purepursuit_control_node(data):
     print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
+    # current_speed_factor = speed_factors[base_proj_idx]
+    # dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
+    # command.speed = dynamic_speed
+
     global max_speed
     global min_speed
+
     error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
     print("error: ", error)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
