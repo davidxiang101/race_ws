@@ -143,16 +143,16 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
     differential_curvature = calculate_differential_curvature(curvature)
 
     # Update turn detection
-    curvature_threshold = 0.01
-    diff_curvature_threshold = 0.001
+    curvature_threshold = 0.1
+    diff_curvature_threshold = 0.01
     turning_points, apex_points, end_turn_points = identify_turn_zones(
         curvature, differential_curvature, curvature_threshold, diff_curvature_threshold
     )
 
-    turning_points, apex_points = identify_turn_zones(curvature, curvature_threshold)
     speed_profile, braking_zones, acceleration_zones = create_speed_profile(
-        curvature, turning_points, apex_points, 0.0, 1.0
+        curvature, turning_points, apex_points, 0.0, 1.0, 10
     )
+    smoothed_raceline["speed_factor"] = speed_profile
 
     # Plotting
     plt.figure(figsize=(12, 6))
@@ -161,11 +161,11 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 
     # Highlight braking zones
     for idx in braking_zones:
-        plt.scatter(x_high_res[idx], y_high_res[idx], color="red", s=10)
+        plt.scatter(x_high_res[idx], y_high_res[idx], color="red", s=20)
 
     # Highlight acceleration zones
     for idx in acceleration_zones:
-        plt.scatter(x_high_res[idx], y_high_res[idx], color="green", s=10)
+        plt.scatter(x_high_res[idx], y_high_res[idx], color="green", s=20)
 
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
@@ -176,22 +176,10 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 
     # Save the high-resolution smoothed raceline to a CSV file
     smoothed_raceline.to_csv(output_file, header=False, index=False)
-
-    # Plotting
-    plt.figure(figsize=(12, 6))
-    plt.plot(x_original, y_original, "o", label="Original Points")
-    plt.plot(x_high_res, y_high_res, label="High-Resolution Smoothed Raceline")
-    plt.xlabel("X-coordinate")
-    plt.ylabel("Y-coordinate")
-    plt.title("High-Resolution Raceline Smoothing")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
     return x_high_res, y_high_res
 
 
 # Usage
 smooth_and_refine_raceline(
-    "raceline.csv", "raceline_smoothed.csv", sigma=3, num_points=500
+    "../path/raceline3.csv", "raceline_speed.csv", sigma=3, num_points=500
 )
