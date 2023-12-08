@@ -42,8 +42,8 @@ def identify_turn_zones(
         # Detecting the apex of the turn
         if (
             in_turn
-            and differential_curvature[i] < 0
-            and differential_curvature[i - 1] >= 0
+            and (differential_curvature[i] < 0 and differential_curvature[i - 1] >= 0)
+            or (differential_curvature[i] > 0 and differential_curvature[i - 1] <= 0)
         ):
             apex_points.append(i)
 
@@ -141,16 +141,17 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 
     # Calculate differential curvature
     differential_curvature = calculate_differential_curvature(curvature)
+    print(curvature)
 
     # Update turn detection
-    curvature_threshold = 0.1
-    diff_curvature_threshold = 0.01
+    curvature_threshold = 0.2
+    diff_curvature_threshold = 0.05
     turning_points, apex_points, end_turn_points = identify_turn_zones(
         curvature, differential_curvature, curvature_threshold, diff_curvature_threshold
     )
 
     speed_profile, braking_zones, acceleration_zones = create_speed_profile(
-        curvature, turning_points, apex_points, 0.0, 1.0, 10
+        curvature, turning_points, apex_points, 0.0, 1.0, 20
     )
     smoothed_raceline["speed_factor"] = speed_profile
 
