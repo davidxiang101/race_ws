@@ -13,6 +13,8 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker
 import tf
+from scipy.spatial import KDTree
+
 
 # Global variables for storing the path, path resolution, frame ID, and car details
 plan = []
@@ -90,6 +92,12 @@ def construct_path():
     raceline_path = Path()
     raceline_path.header.frame_id = "map"
 
+    global kd_tree
+    coordinates = [
+        (point[0], point[1]) for point in plan
+    ]  # Assuming x, y coordinates are the first two elements
+    kd_tree = KDTree(coordinates)
+
     for index, point in enumerate(plan):
         waypoint = PoseStamped()
         waypoint.header.frame_id = "map"
@@ -132,6 +140,13 @@ def purepursuit_control_node(data):
     # The base projection is defined as the closest point on the reference path to the car's current position.
     # Calculate the index and position of this base projection on the reference path.
     # print(plan)
+
+    # Query the k-d tree for the nearest neighbor
+    # odom_position = (data.pose.position.x, data.pose.position.y)
+    # base_proj_idx = kd_tree.query(odom_position)[1]
+    # base_proj_pos = plan[base_proj_idx][:2]  # x, y
+    # pose_x, pose_y = base_proj_pos
+
     base_proj_idx = 0
     base_proj_dist = sys.maxsize
     base_proj_pos = (0, 0)
