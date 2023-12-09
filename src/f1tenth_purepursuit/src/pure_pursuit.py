@@ -25,7 +25,7 @@ frame_id = "map"
 raceline = None
 
 # # global variables with launch file
-trajectory_name = rospy.get_param("~arg1", "raceline3.csv")
+trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
 print("traj: ", trajectory_name)
 
 car_name = rospy.get_param("~arg2", "car_4")

@@ -1,7 +1,7 @@
 <launch>
 
   <node pkg="f1tenth_purepursuit" type="pure_pursuit.py" name="pure_pursuit" output="screen">
-        <param name="arg1" type="str" value="raceline3"/>
+        <param name="arg1" type="str" value="raceline_final"/>
         <param name="arg2" type="str" value="car_4"/>
     </node>
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find f1tenth_purepursuit)/src/cartographer_ros/cartographer_ros/configuration_files/map_demo.rviz" ></node>
