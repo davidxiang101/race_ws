@@ -19,6 +19,7 @@ command_pub = rospy.Publisher("/car_4/offboard/command", AckermannDrive, queue_s
 disparity_pub = rospy.Publisher(
     "/car_4/disparity_extension", MarkerArray, queue_size=10
 )
+max_area_pub = rospy.Publisher("/car_4/max_area_marker", Marker, queue_size=10)
 laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
 
 
@@ -202,6 +203,40 @@ def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
     steering_marker_pub.publish(steering_marker)
 
 
+def publish_max_area_marker(index, area, angle_increment, frame_id="car_4_laser"):
+    marker = Marker()
+    marker.header.frame_id = frame_id
+    marker.header.stamp = rospy.Time.now()
+    marker.ns = "max_area_marker"
+    marker.id = 0
+    marker.type = Marker.LINE_STRIP
+    marker.action = Marker.ADD
+
+    # Define the angle and distance of the area
+    angle = index * angle_increment - math.pi / 2  # Convert index to angle
+    distance = area  # Assuming 'area' represents the distance for simplicity
+
+    # Define points of the area
+    p1 = Point()
+    p1.x = distance * math.cos(angle - angle_increment / 2)
+    p1.y = distance * math.sin(angle - angle_increment / 2)
+    p1.z = 0
+    p2 = Point()
+    p2.x = distance * math.cos(angle + angle_increment / 2)
+    p2.y = distance * math.sin(angle + angle_increment / 2)
+    p2.z = 0
+
+    marker.points = [p1, p2]
+
+    marker.scale.x = 0.05  # Width of the line
+    marker.color.a = 1.0  # Alpha must be non-zero
+    marker.color.r = 1.0
+    marker.color.g = 0.0
+    marker.color.b = 0.0
+
+    max_area_pub.publish(marker)
+
+
 def callback(data):
     processed_data = preprocess(data)
 
@@ -219,6 +254,8 @@ def callback(data):
     command_pub.publish(command)
 
     publish_steering_marker(command.steering_angle)
+
+    publish_max_area_marker(best_gap_index, max_area, data.angle_increment)
 
 
 if __name__ == "__main__":
