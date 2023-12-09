@@ -106,8 +106,8 @@ def callback(data):
     steering_angle_rads = math.radians(gap_dir)
     quat = tf.transformations.quaternion_from_euler(0, 0, steering_angle_rads)
 
-    steering_marker.pose.orientation.x = data.pose.orientation.x
-    steering_marker.pose.orientation.y = data.pose.orientation.x
+    steering_marker.pose.orientation.x = quat[0]
+    steering_marker.pose.orientation.y = quat[1]
     steering_marker.pose.orientation.z = quat[2]
     steering_marker.pose.orientation.w = quat[3]
 
