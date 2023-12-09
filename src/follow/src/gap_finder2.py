@@ -11,7 +11,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 import copy
 import tf
-
+import heapq
 
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
@@ -96,8 +96,42 @@ def find_gap(extended_data, inc, height_weight=4, width_weight=1):
             max_area = area
             max_area_ind = (prev_index + i) // 2
     print("max_area", max_area, max_area_ind, len(extended_data))
-    
+
     return max_area_ind, max_area
+
+
+def find_n_largest_gaps(extended_data, inc, n, height_weight=4, width_weight=1):
+    gaps = []  # List of tuples (area, start_index, end_index)
+    start_index = None
+
+    for i, height in enumerate(extended_data):
+        if height >= threshold:
+            if start_index is None:
+                start_index = i
+        else:
+            if start_index is not None:
+                # Calculate the area of the gap
+                width = i - start_index
+                area = (height_weight * height) * (width_weight * width)
+                heapq.heappush(gaps, (area, start_index, i - 1))
+                start_index = None
+
+    # In case the last data point also forms a gap
+    if start_index is not None:
+        width = len(extended_data) - start_index
+        area = (height_weight * extended_data[-1]) * (width_weight * width)
+        heapq.heappush(gaps, (area, start_index, len(extended_data) - 1))
+
+    # Get the 'n' largest gaps
+    largest_gaps = heapq.nlargest(n, gaps)
+
+    # Convert gap indices to angles
+    largest_gaps_angles = [
+        (math.degrees(inc * (start + end) / 2 - math.pi / 2), area)
+        for _, start, end in largest_gaps
+    ]
+
+    return largest_gaps_angles
 
 
 def index_to_angle(index, angle_increment, num_points):
@@ -112,7 +146,7 @@ def index_to_angle(index, angle_increment, num_points):
     print(angle)
     return angle
 
-    
+
 def transform_steering(steering_angle):
     if steering_angle > 30:
         steering_angle = 30
