@@ -8,6 +8,7 @@ import numpy as np
 from collections import deque, defaultdict
 from ackermann_msgs.msg import AckermannDrive
 from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point
 import copy
 import tf
 
@@ -100,10 +101,16 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
     return max_area_ind, max_area
 
 
-def index_to_angle(index, inc, total_points):
-    field_of_view = math.radians(180)  # Field of view in radians (-90 to 90 degrees)
-    start_angle = -field_of_view / 2  # Starting angle (-90 degrees)
-    return math.degrees(start_angle + index * inc)
+def index_to_angle(index, angle_increment, num_points):
+    angle_min = -90
+    forward_angle_min = -math.pi / 2  # -90 degrees
+    forward_angle_max = math.pi / 2  # 90 degrees
+
+    start_index = int((forward_angle_min - angle_min) / angle_increment)
+    end_index = start_index + num_points
+
+    for i in range(num_points):
+        angle = angle_min + (start_index + index) * angle_increment
 
 
 def transform_steering(steering_angle):
@@ -203,40 +210,6 @@ def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
     steering_marker_pub.publish(steering_marker)
 
 
-def publish_max_area_marker(index, area, angle_increment, frame_id="car_4_laser"):
-    marker = Marker()
-    marker.header.frame_id = frame_id
-    marker.header.stamp = rospy.Time.now()
-    marker.ns = "max_area_marker"
-    marker.id = 0
-    marker.type = Marker.LINE_STRIP
-    marker.action = Marker.ADD
-
-    # Define the angle and distance of the area
-    angle = index * angle_increment - math.pi / 2  # Convert index to angle
-    distance = area  # Assuming 'area' represents the distance for simplicity
-
-    # Define points of the area
-    p1 = Point()
-    p1.x = distance * math.cos(angle - angle_increment / 2)
-    p1.y = distance * math.sin(angle - angle_increment / 2)
-    p1.z = 0
-    p2 = Point()
-    p2.x = distance * math.cos(angle + angle_increment / 2)
-    p2.y = distance * math.sin(angle + angle_increment / 2)
-    p2.z = 0
-
-    marker.points = [p1, p2]
-
-    marker.scale.x = 0.05  # Width of the line
-    marker.color.a = 1.0  # Alpha must be non-zero
-    marker.color.r = 1.0
-    marker.color.g = 0.0
-    marker.color.b = 0.0
-
-    max_area_pub.publish(marker)
-
-
 def callback(data):
     processed_data = preprocess(data)
 
@@ -244,7 +217,7 @@ def callback(data):
 
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
-    best_gap_index, _ = find_gap(extended_data, data.angle_increment)
+    best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
 
     gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
@@ -254,8 +227,6 @@ def callback(data):
     command_pub.publish(command)
 
     publish_steering_marker(command.steering_angle)
-
-    publish_max_area_marker(best_gap_index, max_area, data.angle_increment)
 
 
 if __name__ == "__main__":
