@@ -49,7 +49,7 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 50.0
+max_speed = 60.0
 min_speed = 20.0
 
 speed_factors = []
@@ -62,7 +62,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth3.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth4.csv".format(
             trajectory_name
         )
     )
