@@ -63,7 +63,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_high_res.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth.csv".format(
             trajectory_name
         )
     )
