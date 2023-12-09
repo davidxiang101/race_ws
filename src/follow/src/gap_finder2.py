@@ -51,25 +51,21 @@ def preprocess(data, max_distance=5.0):
     return processed_scan
 
 
-def disparity_extension(processed_data, car_width=0.20, clearance_threshold=0.01):
-    extended_data = copy.deepcopy(processed_data)
-    half_car_width = car_width / 2 + clearance_threshold
+def disparity_extension(
+    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.04
+):
+    lidar = processed_data
+    new_lidar = copy.deepcopy(lidar)
+    for i, scan_dist in enumerate(lidar):
+        if scan_dist < clearance_threshold:
+            continue
+        k = int(
+            math.atan((car_width + clearance_threshold) / scan_dist) / angle_increment
+        )
+        for j in range(max(0, i - k), min(len(lidar), i + k + 1)):
+            new_lidar[j] = min(new_lidar[j], lidar[i])
 
-    for i in range(1, len(processed_data)):
-        if abs(processed_data[i] - processed_data[i - 1]) > clearance_threshold:
-            closer_dist = min(processed_data[i], processed_data[i - 1])
-            samples_to_cover = int(math.ceil(half_car_width / closer_dist))
-
-            if processed_data[i] > processed_data[i - 1]:
-                for j in range(i, min(i + samples_to_cover, len(extended_data))):
-                    if extended_data[j] > closer_dist:
-                        extended_data[j] = closer_dist
-            else:
-                for j in range(i - 1, max(i - 1 - samples_to_cover, -1), -1):
-                    if extended_data[j] > closer_dist:
-                        extended_data[j] = closer_dist
-
-    return extended_data
+    return new_lidar
 
 
 def find_gap(processed_data):
@@ -176,9 +172,7 @@ def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
 def callback(data):
     processed_data = preprocess(data)
 
-    extended_data = disparity_extension(processed_data)
-
-    print(sum([abs(processed_data[i] - extended_data[i]) for i in range(len(processed_data))]))
+    extended_data = disparity_extension(processed_data, data.angle_increment)
 
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
