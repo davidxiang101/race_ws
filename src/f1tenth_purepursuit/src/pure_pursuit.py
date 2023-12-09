@@ -49,12 +49,10 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 60.0
+max_speed = 40.0
 min_speed = 25.0
-prev_speed = 0.0
+prev_speed_factor = 0.0
 
-# tune this
-speed_lookahead = 0.5
 speed_factors = []
 
 wp_seq = 0
@@ -142,6 +140,7 @@ def purepursuit_control_node(data):
     # print(plan)
 
     # Query the k-d tree for the nearest neighbor
+    # uncomment when ready
     # odom_position = (data.pose.position.x, data.pose.position.y)
     # base_proj_idx = kd_tree.query(odom_position)[1]
     # base_proj_pos = plan[base_proj_idx][:2]  # x, y
@@ -177,9 +176,9 @@ def purepursuit_control_node(data):
     # dynamic lookahead distance (needs to be tuned and tested)
     BASE_DISTANCE = 1.6
     MAX_DISTANCE = 1.8
-    global prev_speed
+    global prev_speed_factor
     lookahead_distance = BASE_DISTANCE + (
-        (prev_speed / max_speed) * (MAX_DISTANCE - BASE_DISTANCE)
+        (prev_speed_factor) * (MAX_DISTANCE - BASE_DISTANCE)
     )
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
@@ -236,12 +235,15 @@ def purepursuit_control_node(data):
     print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
-    # current_speed_factor = speed_factors[base_proj_idx]
-    # dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
-    # command.speed = dynamic_speed
 
     global max_speed
     global min_speed
+
+    # uncomment when ready
+    # current_speed_factor = speed_factors[base_proj_idx]
+    # dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
+    # command.speed = dynamic_speed
+    # prev_speed_factor = current_speed_factor
 
     error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
     print("error: ", error)
@@ -249,7 +251,7 @@ def purepursuit_control_node(data):
     command.speed = min(max_speed, dynamic_speed)
     command.speed = max(min_speed, dynamic_speed)
     command.speed = dynamic_speed
-    prev_speed = dynamic_speed
+    prev_speed_factor = dynamic_speed
     print("dynamic speed: ", dynamic_speed)
 
     command_pub.publish(command)

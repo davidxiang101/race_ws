@@ -242,12 +242,12 @@ def callback(data):
 
     best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
 
-    # angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
+    angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
 
-    # best_gap_index = 0
-    # for i, (angle, area) in enumerate(angles):
-    #     if angle < angles[best_gap_index][0]:
-    #         best_gap_index = i
+    best_gap_index = 0
+    for i, (angle, area) in enumerate(angles):
+        if abs(angle) < (angles[best_gap_index][0]):
+            best_gap_index = i
 
     gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
