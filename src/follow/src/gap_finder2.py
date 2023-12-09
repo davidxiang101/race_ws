@@ -53,7 +53,7 @@ def preprocess(data, max_distance=5.0):
 
 
 def disparity_extension(
-    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.04
+    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.12
 ):
     lidar = processed_data
     new_lidar = copy.deepcopy(lidar)
@@ -116,14 +116,8 @@ def find_n_largest_gaps(
 
 
 def index_to_angle(index, angle_increment, num_points):
-    angle_min = -90
-    forward_angle_min = -math.pi / 2  # -90 degrees
-    forward_angle_max = math.pi / 2  # 90 degrees
-
-    start_index = int((forward_angle_min - angle_min) / angle_increment)
-    end_index = start_index + num_points
-
-    angle = math.degrees(angle_min + (start_index + index) * angle_increment)
+    angle_min = -math.pi / 2
+    angle = math.degrees(angle_min + (index * angle_increment))
     print(angle)
     return angle
 
@@ -143,7 +137,7 @@ def transform_steering(steering_angle):
 
 def dynamic_speed(command_angle):
     max_speed = 30
-    min_speed = 10
+    min_speed = 20
 
     error = 1 - (abs(command_angle) / 100)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
@@ -232,14 +226,14 @@ def callback(data):
 
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
-    # best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
+    best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
 
-    angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
+    # angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
 
-    best_gap_index = 0
-    for i, (angle, area) in enumerate(angles):
-        if angle < angles[best_gap_index][0]:
-            best_gap_index = i
+    # best_gap_index = 0
+    # for i, (angle, area) in enumerate(angles):
+    #     if angle < angles[best_gap_index][0]:
+    #         best_gap_index = i
 
     gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
@@ -248,7 +242,7 @@ def callback(data):
     command.speed = dynamic_speed(command.steering_angle)
     command_pub.publish(command)
 
-    publish_steering_marker(command.steering_angle)
+    publish_steering_marker(gap_angle)
 
 
 if __name__ == "__main__":
