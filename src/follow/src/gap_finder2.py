@@ -72,7 +72,7 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
     max_area = 0
     max_area_ind = 0
 
-    for i, height in enumerate(free_space_ranges):
+    for i, height in enumerate(extended_data):
         if not stk or height > stk[-1][0]:
             stk.append((height, i))
         else:
@@ -108,10 +108,10 @@ def index_to_angle(index, inc, total_points):
 def transform_steering(steering_angle):
     if steering_angle > 30:
         steering_angle = 30
-        print("\n\n\n\n\n\n\n\n\nEXCEED TURNING\n\n\n\n\n\n\n")
+        print("\n\n\nEXCEED TURNING\n\n\n")
     if steering_angle < -30:
         steering_angle = -30
-        print("\n\n\n\n\n\n\n\n\nEXCEED TURNING\n\n\n\n\n\n\n")
+        print("\n\n\nEXCEED TURNING\n\n\n")
 
     command_angle = steering_angle * (10.0 / 3.0)
     print("command angle: ", command_angle)
@@ -214,7 +214,7 @@ def callback(data):
     gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
     command = AckermannDrive()
-    command.steering_angle = transform_steering(gap_dir)
+    command.steering_angle = transform_steering(gap_angle)
     command.speed = dynamic_speed(command.steering_angle)
     command_pub.publish(command)
 
