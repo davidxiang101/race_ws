@@ -49,8 +49,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 55.0
-min_speed = 10.0
+max_speed = 50.0
+min_speed = 20.0
 
 speed_factors = []
 
@@ -62,7 +62,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth2.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth3.csv".format(
             trajectory_name
         )
     )
@@ -173,8 +173,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 0.45
-    MAX_DISTANCE = 1.8
+    BASE_DISTANCE = 0.9
+    MAX_DISTANCE = 1.9
     lookahead_distance = BASE_DISTANCE + ((speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE))
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
@@ -189,7 +189,8 @@ def purepursuit_control_node(data):
     while curr_lookahead_dist < lookahead_distance:
         curr_lookahead_dist += path_resolution[goal_idx]
         goal_idx += 1
-        goal_idx = goal_idx % len(path_resolution)
+        if goal_idx == len(path_resolution):
+            goal_idx = 0
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
 
@@ -239,7 +240,8 @@ def purepursuit_control_node(data):
     # uncomment when ready
     current_speed_factor = speed_factors[base_proj_idx]
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
-    command.speed = dynamic_speed
+    steering_offset = -8
+    command.speed = max(-100, dynamic_speed + steering_offset)
 
     # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
     # print("error: ", error)
