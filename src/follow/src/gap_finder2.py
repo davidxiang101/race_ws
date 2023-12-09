@@ -102,20 +102,32 @@ def dynamic_speed(command_angle):
     return dynamic_speed
 
 
-def publish_disparity_data(extended_data, frame_id="car_4_laser"):
+def publish_disparity_data(
+    extended_data, angle_min, angle_max, angle_increment, frame_id="car_4_laser"
+):
     marker_array = MarkerArray()
+    num_points = len(extended_data)
 
-    for i, distance in enumerate(extended_data):
+    # Calculate start and end angles for the forward-facing scan
+    forward_angle_min = -math.pi / 2  # -90 degrees
+    forward_angle_max = math.pi / 2  # 90 degrees
+
+    # Calculate the starting index based on the minimum forward angle
+    start_index = int((forward_angle_min - angle_min) / angle_increment)
+    end_index = start_index + num_points
+
+    for i in range(num_points):
+        angle = angle_min + (start_index + i) * angle_increment
+        distance = extended_data[i]
+
         marker = Marker()
         marker.header.frame_id = frame_id
         marker.header.stamp = rospy.Time.now()
         marker.id = i
         marker.type = Marker.SPHERE
         marker.action = Marker.ADD
-        marker.pose.position.x = distance * math.cos(
-            i
-        )  # Assuming each point is spaced evenly in angle
-        marker.pose.position.y = distance * math.sin(i)
+        marker.pose.position.x = distance * math.cos(angle)
+        marker.pose.position.y = distance * math.sin(angle)
         marker.pose.position.z = 0
         marker.scale.x = 0.1  # Small sphere size
         marker.scale.y = 0.1
