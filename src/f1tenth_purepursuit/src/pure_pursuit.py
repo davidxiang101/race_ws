@@ -49,9 +49,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 40.0
-min_speed = 25.0
-prev_speed_factor = 0.0
+max_speed = 25.0
+min_speed = 15.0
 
 speed_factors = []
 
@@ -63,7 +62,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth2.csv".format(
             trajectory_name
         )
     )
@@ -141,23 +140,23 @@ def purepursuit_control_node(data):
 
     # Query the k-d tree for the nearest neighbor
     # uncomment when ready
-    # odom_position = (data.pose.position.x, data.pose.position.y)
-    # base_proj_idx = kd_tree.query(odom_position)[1]
-    # base_proj_pos = plan[base_proj_idx][:2]  # x, y
-    # pose_x, pose_y = base_proj_pos
-
-    base_proj_idx = 0
-    base_proj_dist = sys.maxsize
-    base_proj_pos = (0, 0)
-
-    for idx in range(len(plan)):
-        x, y, z, w = plan[idx]
-        dist_to_point = math.sqrt(math.pow(odom_x - x, 2) + math.pow(odom_y - y, 2))
-        if base_proj_dist > dist_to_point:
-            base_proj_dist = dist_to_point
-            base_proj_pos = (x, y)  # only x, y
-            base_proj_idx = idx
+    odom_position = (data.pose.position.x, data.pose.position.y)
+    base_proj_idx = kd_tree.query(odom_position)[1]
+    base_proj_pos = plan[base_proj_idx][:2]  # x, y
     pose_x, pose_y = base_proj_pos
+
+    # base_proj_idx = 0
+    # base_proj_dist = sys.maxsize
+    # base_proj_pos = (0, 0)
+
+    # for idx in range(len(plan)):
+    #     x, y, z, w = plan[idx]
+    #     dist_to_point = math.sqrt(math.pow(odom_x - x, 2) + math.pow(odom_y - y, 2))
+    #     if base_proj_dist > dist_to_point:
+    #         base_proj_dist = dist_to_point
+    #         base_proj_pos = (x, y)  # only x, y
+    #         base_proj_idx = idx
+    # pose_x, pose_y = base_proj_pos
 
     # Calculate heading angle of the car (in radians)
     heading = tf.transformations.euler_from_quaternion(
@@ -174,11 +173,9 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 0.5
-    MAX_DISTANCE = 1.0
-    global prev_speed_factor
-    lookahead_distance = 1.0
-    #BASE_DISTANCE + ((prev_speed_factor) * (MAX_DISTANCE - BASE_DISTANCE))
+    BASE_DISTANCE = 0.3
+    MAX_DISTANCE = 1.2
+    lookahead_distance = BASE_DISTANCE + ((speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE))
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
     # This target point should be determined based on the path and the base projection you have already calculated.
@@ -226,10 +223,10 @@ def purepursuit_control_node(data):
     # 0 is straight (0 degrees)
     if steering_angle > 30:
         steering_angle = 30
-        print("\n\n\n\n\n\n\n\n\nEXCEED TURNING\n\n\n\n\n\n\n")
+        print("\nEXCEED TURNING\n")
     if steering_angle < -30:
         steering_angle = -30
-        print("\n\n\n\n\n\n\n\n\nEXCEED TURNING\n\n\n\n\n\n\n")
+        print("\nEXCEED TURNING\n")
 
     command.steering_angle = steering_angle * (10.0 / 3.0)
     print("command angle: ", command.steering_angle)
@@ -240,19 +237,17 @@ def purepursuit_control_node(data):
     global min_speed
 
     # uncomment when ready
-    # current_speed_factor = speed_factors[base_proj_idx]
-    # dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
-    # command.speed = dynamic_speed
-    # prev_speed_factor = current_speed_factor
-
-    error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
-    print("error: ", error)
-    dynamic_speed = (error) * (max_speed - min_speed) + min_speed
-    command.speed = min(max_speed, dynamic_speed)
-    command.speed = max(min_speed, dynamic_speed)
+    current_speed_factor = speed_factors[base_proj_idx]
+    dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
     command.speed = dynamic_speed
-    prev_speed_factor = dynamic_speed
-    print("dynamic speed: ", dynamic_speed)
+
+    # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
+    # print("error: ", error)
+    # dynamic_speed = (error) * (max_speed - min_speed) + min_speed
+    # command.speed = min(max_speed, dynamic_speed)
+    # command.speed = max(min_speed, dynamic_speed)
+    # command.speed = dynamic_speed
+    print("dynamic speed: ", command.speed)
 
     command_pub.publish(command)
 
