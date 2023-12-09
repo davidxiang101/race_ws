@@ -69,7 +69,7 @@ def disparity_extension(
     return new_lidar
 
 
-def find_gap(extended_data, inc, height_weight=40, width_weight=1):
+def find_gap(extended_data, inc, height_weight=1000, width_weight=1):
     extended_data.append(0)
     stk = []  # height, startind
     max_area = 0
