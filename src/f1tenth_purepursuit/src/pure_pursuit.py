@@ -175,25 +175,34 @@ def purepursuit_control_node(data):
     # dynamic lookahead distance (needs to be tuned and tested)
     BASE_DISTANCE = 0.9
     MAX_DISTANCE = 1.9
-    lookahead_distance = BASE_DISTANCE + ((speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE))
+    lookahead_distance = BASE_DISTANCE + (
+        (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
+    )
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
     # This target point should be determined based on the path and the base projection you have already calculated.
     # The target point is a specific point on the reference path that the car should aim towards - lookahead distance ahead of the base projection on the reference path.
     # Calculate the position of this goal/target point along the path.
 
-    # Your code here
     curr_lookahead_dist = 0
     goal_idx = base_proj_idx
 
     while curr_lookahead_dist < lookahead_distance:
         curr_lookahead_dist += path_resolution[goal_idx]
         goal_idx += 1
-        if goal_idx == len(path_resolution):
+
+        # Ensure goal_idx wraps around correctly
+        if goal_idx >= len(plan):
             goal_idx = 0
+
+        # Check if we have looped back to the start (to prevent infinite loop)
+        if goal_idx == base_proj_idx:
+            break
+
+    # After the loop, make sure goal_idx is valid for 'plan'
+    goal_idx = goal_idx % len(plan)
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
-
     print(base_proj_idx, goal_idx)
 
     # TODO 4: Implement the pure pursuit algorithm to compute the steering angle given the pose of the car, target point, and lookahead distance.
