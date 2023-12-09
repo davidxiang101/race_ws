@@ -46,19 +46,11 @@ def callback(data):
     global error
 
     processed_data = preprocess_lidar(data)
-    error_msg = pid_input()
-    error_msg.pid_error = 0
-    error_msg.pid_vel = 3
-    pub.publish(error_msg)
 
+    gap = find_gap(processed_data)
 
-    #error = find_gap(data)
-
-    # msg = pid_input()
-    # msg.pid_error = -1 * error
-    # print(-1 * error)
-    # msg.pid_vel = vel
-    # pub.publish(msg)
+    
+    
 
 
 if __name__ == "__main__":

@@ -6,4 +6,5 @@
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
 subdirs("f1tenth_purepursuit")
+subdirs("follow")
 subdirs("race")

@@ -302,6 +302,12 @@ f1tenth_purepursuit_BINARY_DIR:STATIC=/home/nvidia/catkin_ws/build/f1tenth_purep
 //Value Computed by CMake
 f1tenth_purepursuit_SOURCE_DIR:STATIC=/home/nvidia/catkin_ws/src/f1tenth_purepursuit
 
+//Value Computed by CMake
+follow_BINARY_DIR:STATIC=/home/nvidia/catkin_ws/build/follow
+
+//Value Computed by CMake
+follow_SOURCE_DIR:STATIC=/home/nvidia/catkin_ws/src/follow
+
 //The directory containing a CMake configuration file for gencpp.
 gencpp_DIR:PATH=/opt/ros/melodic/share/gencpp/cmake
 
@@ -548,7 +554,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=6
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=7
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP
