@@ -69,7 +69,7 @@ def disparity_extension(
     return new_lidar
 
 
-def find_gap(extended_data, inc, height_weight=1, width_weight=1):
+def find_gap(extended_data, inc, height_weight=4, width_weight=1):
     stk = []  # height, startind
     max_area = 0
     max_area_ind = 0
@@ -85,7 +85,7 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
                 area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
                 if area > max_area:
                     max_area = area
-                    max_area_ind = (prev_index + i) >> 1
+                    max_area_ind = (prev_index + i) // 2
             stk.append((height, earliest))
 
     while stk:
@@ -94,10 +94,9 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
         area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
         if area > max_area:
             max_area = area
-            max_area_ind = (prev_index + i) >> 1
-    print("max_area", max_area, max_area_ind)
-    previous_max_ind = max_area_ind
-    previous_max_area = max_area
+            max_area_ind = (prev_index + i) // 2
+    print("max_area", max_area, max_area_ind, len(extended_data))
+    
     return max_area_ind, max_area
 
 
@@ -109,10 +108,11 @@ def index_to_angle(index, angle_increment, num_points):
     start_index = int((forward_angle_min - angle_min) / angle_increment)
     end_index = start_index + num_points
 
-    for i in range(num_points):
-        angle = angle_min + (start_index + index) * angle_increment
+    angle = math.degrees(angle_min + (start_index + index) * angle_increment)
+    print(angle)
+    return angle
 
-
+    
 def transform_steering(steering_angle):
     if steering_angle > 30:
         steering_angle = 30
