@@ -67,8 +67,42 @@ def disparity_extension(
     return new_lidar
 
 
-def find_gap(processed_data):
-    return 30.0
+def find_gap(extended_data, inc, height_weight=1, width_weight=1):
+    stk = []  # height, startind
+    max_area = 0
+    max_area_ind = 0
+
+    for i, height in enumerate(free_space_ranges):
+        if not stk or height > stk[-1][0]:
+            stk.append((height, i))
+        else:
+            earliest = i
+            while stk and stk[-1][0] > height:
+                prev = stk.pop()
+                prev_index = prev[1]
+                area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
+                if area > max_area:
+                    max_area = area
+                    max_area_ind = (prev_index + i) >> 1
+            stk.append((height, earliest))
+
+    while stk:
+        prev = stk.pop()
+        prev_index = prev[1]
+        area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
+        if area > max_area:
+            max_area = area
+            max_area_ind = (prev_index + i) >> 1
+    print("max_area", max_area, max_area_ind)
+    previous_max_ind = max_area_ind
+    previous_max_area = max_area
+    return max_area_ind, max_area
+
+
+def index_to_angle(index, inc, total_points):
+    field_of_view = math.radians(180)  # Field of view in radians (-90 to 90 degrees)
+    start_angle = -field_of_view / 2  # Starting angle (-90 degrees)
+    return math.degrees(start_angle + index * inc)
 
 
 def transform_steering(steering_angle):
@@ -175,7 +209,9 @@ def callback(data):
 
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
-    gap_dir = find_gap(processed_data)
+    best_gap_index, _ = find_gap(extended_data, data.angle_increment)
+
+    gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
     command = AckermannDrive()
     command.steering_angle = transform_steering(gap_dir)
