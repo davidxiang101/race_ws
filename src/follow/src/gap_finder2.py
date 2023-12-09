@@ -46,7 +46,6 @@ def preprocess(data, max_distance=5.0):
         min(max_distance, r) if not math.isnan(r) else max_distance
         for r in forward_scan
     ]
-    print(len(data.ranges), len(processed_scan))
 
     return processed_scan
 
