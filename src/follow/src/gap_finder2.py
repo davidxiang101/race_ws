@@ -70,27 +70,13 @@ def disparity_extension(
 
 
 def find_gap(extended_data, inc, height_weight=40, width_weight=1):
-    extended_data.append(0)
-    stk = []  # height, startind
-    max_area = 0
-    max_area_ind = 0
-
+    max_depth = 0
+    max_ind = 0
     for i, height in enumerate(extended_data):
-        if not stk or height > stk[-1][0]:
-            stk.append((height, i))
-        else:
-            earliest = i
-            while stk and stk[-1][0] > height:
-                prev = stk.pop()
-                prev_index = prev[1]
-                area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
-                if area > max_area:
-                    max_area = area
-                    max_area_ind = (prev_index + i) // 2
-            stk.append((height, earliest))
-
-    print("max_area", max_area, max_area_ind, len(extended_data))
-    return max_area_ind, max_area
+        if height > max_depth:
+            max_depth = height
+            max_ind = i
+    return max_ind, max_depth
 
 
 def find_n_largest_gaps(
