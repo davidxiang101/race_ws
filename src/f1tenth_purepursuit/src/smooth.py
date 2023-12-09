@@ -133,6 +133,6 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 smooth_and_refine_raceline(
     "../path/raceline_final4.csv",
     "raceline_final_smooth4.csv",
-    sigma=5,
+    sigma=3,
     num_points=1000,
 )
