@@ -49,8 +49,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 25.0
-min_speed = 15.0
+max_speed = 55.0
+min_speed = 10.0
 
 speed_factors = []
 
@@ -173,8 +173,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 0.3
-    MAX_DISTANCE = 1.2
+    BASE_DISTANCE = 0.45
+    MAX_DISTANCE = 1.8
     lookahead_distance = BASE_DISTANCE + ((speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE))
 
     # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
