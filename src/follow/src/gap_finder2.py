@@ -51,7 +51,7 @@ def preprocess(data, max_distance=5.0):
     return processed_scan
 
 
-def disparity_extension(processed_data, car_width=0.08, clearance_threshold=0.04):
+def disparity_extension(processed_data, car_width=0.20, clearance_threshold=0.01):
     extended_data = copy.deepcopy(processed_data)
     half_car_width = car_width / 2 + clearance_threshold
 
@@ -129,7 +129,7 @@ def publish_disparity_data(
         marker.pose.position.x = distance * math.cos(angle)
         marker.pose.position.y = distance * math.sin(angle)
         marker.pose.position.z = 0
-        marker.scale.x = 0.1  # Small sphere size
+        marker.scale.x = 0.05  # Small sphere size
         marker.scale.y = 0.1
         marker.scale.z = 0.1
         marker.color.a = 1.0  # Alpha must be non-zero
@@ -178,7 +178,9 @@ def callback(data):
 
     extended_data = disparity_extension(processed_data)
 
-    publish_disparity_data(extended_data)
+    print(sum([abs(processed_data[i] - extended_data[i]) for i in range(len(processed_data))]))
+
+    publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
     gap_dir = find_gap(processed_data)
 
