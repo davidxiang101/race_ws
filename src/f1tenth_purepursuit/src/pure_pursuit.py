@@ -49,8 +49,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 60.0
-min_speed = 20.0
+max_speed = 56.0
+min_speed = 35.0
 
 speed_factors = []
 
@@ -192,7 +192,7 @@ def purepursuit_control_node(data):
         goal_idx += 1
 
         # Ensure goal_idx wraps around correctly
-        if goal_idx >= len(plan):
+        if goal_idx >= len(path_resolution):
             goal_idx = 0
 
         # Check if we have looped back to the start (to prevent infinite loop)
@@ -200,7 +200,7 @@ def purepursuit_control_node(data):
             break
 
     # After the loop, make sure goal_idx is valid for 'plan'
-    goal_idx = goal_idx % len(plan)
+    goal_idx = goal_idx % len(path_resolution)
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
     print(base_proj_idx, goal_idx)
