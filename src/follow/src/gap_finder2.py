@@ -100,7 +100,9 @@ def find_gap(extended_data, inc, height_weight=4, width_weight=1):
     return max_area_ind, max_area
 
 
-def find_n_largest_gaps(extended_data, inc, n, height_weight=4, width_weight=1):
+def find_n_largest_gaps(
+    extended_data, inc, n, height_weight=40, width_weight=1, threshold=0.1
+):
     gaps = []  # List of tuples (area, start_index, end_index)
     start_index = None
 
@@ -251,7 +253,14 @@ def callback(data):
 
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
-    best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
+    # best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
+
+    angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
+
+    best_gap_index = 0
+    for i, (angle, area) in enumerate(angles):
+        if angle < angles[best_gap_index][0]:
+            best_gap_index = i
 
     gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
