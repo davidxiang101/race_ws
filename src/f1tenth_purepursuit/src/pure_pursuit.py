@@ -300,7 +300,7 @@ def purepursuit_control_node(data):
     quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
 
     steering_marker.pose.orientation.x = data.pose.orientation.x
-    steering_marker.pose.orientation.y = data.pose.orientation.x
+    steering_marker.pose.orientation.y = data.pose.orientation.y
     steering_marker.pose.orientation.z = quat[2]
     steering_marker.pose.orientation.w = quat[3]
 
