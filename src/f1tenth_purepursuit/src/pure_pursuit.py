@@ -49,8 +49,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 56.0
-min_speed = 35.0
+max_speed = 55.0
+min_speed = 30.0
 
 speed_factors = []
 
@@ -173,8 +173,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 0.9
-    MAX_DISTANCE = 1.9
+    BASE_DISTANCE = 1.3
+    MAX_DISTANCE = 2.1
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
