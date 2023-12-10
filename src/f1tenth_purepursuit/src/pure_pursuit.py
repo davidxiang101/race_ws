@@ -187,17 +187,10 @@ def purepursuit_control_node(data):
     curr_lookahead_dist = 0
     goal_idx = base_proj_idx
 
-    while curr_lookahead_dist < lookahead_distance:
-        curr_lookahead_dist += path_resolution[goal_idx]
-        goal_idx += 1
-
-        # Ensure goal_idx wraps around correctly
+    while math.sqrt(((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2) ) < lookahead_distance:
         if goal_idx >= len(path_resolution):
             goal_idx = 0
-
-        # Check if we have looped back to the start (to prevent infinite loop)
-        if goal_idx == base_proj_idx:
-            break
+        goal_idx += 1
 
     # After the loop, make sure goal_idx is valid for 'plan'
     goal_idx = goal_idx % len(path_resolution)
@@ -221,7 +214,7 @@ def purepursuit_control_node(data):
     dist_to_goal = math.sqrt(x_t * x_t + y_t * y_t)
     alpha = math.asin(y_t / dist_to_goal)
     steering_angle = math.degrees(
-        math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / lookahead_distance)
+        math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal)
     )
     print("steering angle: ", steering_angle)
 
