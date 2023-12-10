@@ -62,7 +62,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth4.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth7.csv".format(
             trajectory_name
         )
     )
@@ -187,7 +187,12 @@ def purepursuit_control_node(data):
     curr_lookahead_dist = 0
     goal_idx = base_proj_idx
 
-    while math.sqrt(((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2) ) < lookahead_distance:
+    while (
+        math.sqrt(
+            ((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2)
+        )
+        < lookahead_distance
+    ):
         if goal_idx >= len(path_resolution):
             goal_idx = 0
         goal_idx += 1
