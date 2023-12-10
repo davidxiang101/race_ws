@@ -50,7 +50,7 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 max_speed = 55.0
-min_speed = 30.0
+min_speed = 25.0
 
 speed_factors = []
 
@@ -173,8 +173,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 1.3
-    MAX_DISTANCE = 2.1
+    BASE_DISTANCE = 0.5
+    MAX_DISTANCE = 1.9
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
@@ -187,15 +187,10 @@ def purepursuit_control_node(data):
     curr_lookahead_dist = 0
     goal_idx = base_proj_idx
 
-    while (
-        math.sqrt(
-            ((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2)
-        )
-        < lookahead_distance
-    ):
-        if goal_idx >= len(path_resolution):
-            goal_idx = 0
+    while (math.sqrt(((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2))< lookahead_distance):
         goal_idx += 1
+        if goal_idx >= len(plan) :
+            goal_idx = 0
 
     # After the loop, make sure goal_idx is valid for 'plan'
     goal_idx = goal_idx % len(path_resolution)
