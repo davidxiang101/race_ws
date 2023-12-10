@@ -93,7 +93,7 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 
     # Assuming you have curvature data
     curvature = calculate_curvature(x_high_res, y_high_res)
-    lookahead_distance = 20  # Adjust this based on your track and car dynamics
+    lookahead_distance = 25  # Adjust this based on your track and car dynamics
 
     speed_profile = create_advanced_speed_profile(
         curvature, 0.0, 1.0, lookahead_distance
