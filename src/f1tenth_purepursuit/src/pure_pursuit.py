@@ -26,7 +26,7 @@ frame_id = "map"
 raceline = None
 obstacle_detected = False
 disparity_pub = rospy.Publisher(
-    "/car_4/disparity_extension", MarkerArray, queue_size=10
+    "/car_4/disparity_extension", MarkerArray, queue_size=1
 )
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
@@ -40,7 +40,7 @@ car_name = rospy.get_param("~arg2", "car_4")
 print("car name: ", car_name)
 
 # Subscribe to LIDAR
-laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
+# laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
 
 
 # Publishers for sending driving commands and visualizing the control polygon
@@ -337,7 +337,8 @@ def purepursuit_control_node(data):
 
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
-        command.steering_angle = transform_steering(gap_angle)
+        #command.steering_angle = transform_steering(gap_angle)
+        command.speed = 0
 
     # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
     # print("error: ", error)
@@ -495,15 +496,11 @@ def callback(data):
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
 
-    for datapoint in extended_data[
-        len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
-    ]:
-        if datapoint < 0.2:
+    for datapoint in extended_data[len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1]:
+        if datapoint < 0.02:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
-            gap_angle = index_to_angle(
-                best_gap_index, data.angle_increment, len(extended_data)
-            )
+            gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
             publish_steering_marker(gap_angle)
 
         else:
