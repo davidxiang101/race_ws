@@ -28,6 +28,9 @@ obstacle_detected = False
 disparity_pub = rospy.Publisher(
     "/car_4/disparity_extension", MarkerArray, queue_size=10
 )
+steering_marker_pub = rospy.Publisher(
+    "/car_4/steering_angle_marker", Marker, queue_size=1
+)
 
 # # global variables with launch file
 trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
@@ -412,6 +415,37 @@ def purepursuit_control_node(data):
     )
 
 
+def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
+    steering_marker = Marker()
+    steering_marker.header.frame_id = frame_id
+    steering_marker.header.stamp = rospy.Time.now()
+    steering_marker.ns = "steering_angle_marker"
+    steering_marker.id = 0
+    steering_marker.type = Marker.ARROW
+    steering_marker.action = Marker.ADD
+    steering_marker.scale.x = 1.0
+    steering_marker.scale.y = 0.1
+    steering_marker.scale.z = 0.1
+    steering_marker.color.r = 0.0
+    steering_marker.color.g = 0.0
+    steering_marker.color.b = 1.0
+    steering_marker.color.a = 1.0
+
+    steering_marker.pose.position.x = 0.0
+    steering_marker.pose.position.y = 0.0
+    steering_marker.pose.position.z = 0.0
+
+    steering_angle_rads = math.radians(steering_angle)
+    quat = tf.transformations.quaternion_from_euler(0, 0, steering_angle_rads)
+
+    steering_marker.pose.orientation.x = quat[0]
+    steering_marker.pose.orientation.y = quat[1]
+    steering_marker.pose.orientation.z = quat[2]
+    steering_marker.pose.orientation.w = quat[3]
+
+    steering_marker_pub.publish(steering_marker)
+
+
 def publish_disparity_data(
     extended_data, angle_min, angle_max, angle_increment, frame_id="car_4_laser"
 ):
@@ -443,9 +477,9 @@ def publish_disparity_data(
         marker.scale.y = 0.1
         marker.scale.z = 0.1
         marker.color.a = 1.0  # Alpha must be non-zero
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 0.0
+        marker.color.r = 0.0
+        marker.color.g = 0.3
+        marker.color.b = 1.0
 
         marker_array.markers.append(marker)
 
@@ -464,16 +498,18 @@ def callback(data):
     for datapoint in extended_data[
         len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
     ]:
-        if datapoint < 0.02:
+        if datapoint < 0.2:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
             gap_angle = index_to_angle(
                 best_gap_index, data.angle_increment, len(extended_data)
             )
+            publish_steering_marker(gap_angle)
+
         else:
             obstacle_detected = False
 
-    # print("Obstacle detected: ", obstacle_detected)
+    print("Obstacle detected: ", obstacle_detected)
 
 
 if __name__ == "__main__":
