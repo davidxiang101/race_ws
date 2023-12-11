@@ -399,7 +399,13 @@ def purepursuit_control_node(data):
     steering_marker_pub.publish(steering_marker)
 
     print(
-        f"Elapsed: {(rospy.get_time() - start_time) * 1000:.2f} ms, Ster Ang: {steering_angle:.2f}, Com Ang: {command.steering_angle:.2f}, Spd: {command.speed:.2f}, obscl: {obstacle_detected}"
+        "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}, Obstacle Detected: {}".format(
+            (rospy.get_time() - start_time) * 1000,
+            steering_angle,
+            command.steering_angle,
+            command.speed,
+            obstacle_detected,
+        )
     )
 
 
