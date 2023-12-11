@@ -179,7 +179,7 @@ def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
 def index_to_angle(index, angle_increment, num_points):
     angle_min = -math.pi / 2
     angle = math.degrees(angle_min + (index * angle_increment))
-    print(angle)
+    # print(angle)
     return angle
 
 
@@ -192,7 +192,7 @@ def transform_steering(steering_angle):
         print("\n\n\nEXCEED TURNING\n\n\n")
 
     command_angle = steering_angle * (10.0 / 3.0)
-    print("command angle: ", command_angle)
+    # print("command angle: ", command_angle)
     return command_angle
 
 
@@ -280,7 +280,7 @@ def purepursuit_control_node(data):
     goal_idx = goal_idx % len(path_resolution)
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
-    print(base_proj_idx, goal_idx)
+    # print(base_proj_idx, goal_idx)
 
     # TODO 4: Implement the pure pursuit algorithm to compute the steering angle given the pose of the car, target point, and lookahead distance.
     # Your code here
@@ -300,7 +300,7 @@ def purepursuit_control_node(data):
     steering_angle = math.degrees(
         math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal)
     )
-    print("steering angle: ", steering_angle)
+    # print("steering angle: ", steering_angle)
 
     # TODO 5: Ensure that the calculated steering angle is within the STEERING_RANGE and assign it to command.steering_angle
     # Your code here
@@ -316,7 +316,7 @@ def purepursuit_control_node(data):
         print("\nEXCEED TURNING\n")
 
     command.steering_angle = steering_angle * (10.0 / 3.0)
-    print("command angle: ", command.steering_angle)
+    # print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
 
@@ -339,7 +339,7 @@ def purepursuit_control_node(data):
     # command.speed = min(max_speed, dynamic_speed)
     # command.speed = max(min_speed, dynamic_speed)
     # command.speed = dynamic_speed
-    print("dynamic speed: ", command.speed)
+    # print("dynamic speed: ", command.speed)
 
     command_pub.publish(command)
 
@@ -419,7 +419,7 @@ def callback(data):
     for datapoint in extended_data[
         len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
     ]:
-        if datapoint < 0.5:
+        if datapoint < 0.02:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
             gap_angle = index_to_angle(
@@ -428,7 +428,7 @@ def callback(data):
         else:
             obstacle_detected = False
 
-    print("Obstacle detected: ", obstacle_detected)
+    # print("Obstacle detected: ", obstacle_detected)
 
 
 if __name__ == "__main__":
