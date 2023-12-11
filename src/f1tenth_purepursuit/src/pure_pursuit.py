@@ -8,13 +8,14 @@ import csv
 import math
 from ackermann_msgs.msg import AckermannDrive
 from geometry_msgs.msg import PolygonStamped
+from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Point32
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker
 import tf
 from scipy.spatial import KDTree
-
+import copy
 
 # Global variables for storing the path, path resolution, frame ID, and car details
 plan = []
@@ -23,6 +24,7 @@ frame_id = "map"
 # car_name            = str(sys.argv[1])
 # trajectory_name     = str(sys.argv[2])
 raceline = None
+obstacle_detected = False
 
 # # global variables with launch file
 trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
@@ -30,6 +32,9 @@ print("traj: ", trajectory_name)
 
 car_name = rospy.get_param("~arg2", "car_4")
 print("car name: ", car_name)
+
+# Subscribe to LIDAR
+laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
 
 
 # Publishers for sending driving commands and visualizing the control polygon
@@ -49,8 +54,9 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
-max_speed = 55.0
-min_speed = 40.0
+
+max_speed = 40.0
+min_speed = 25.0
 
 speed_factors = []
 
@@ -118,6 +124,76 @@ STEERING_RANGE = 100.0
 # vehicle physical parameters
 WHEELBASE_LEN = 0.325
 
+def preprocess(data, max_distance=5.0):
+    num_points = len(data.ranges)
+    center_index = num_points // 2
+    angle_range = data.angle_max - data.angle_min
+
+    forward_angle_min = -math.pi / 2  # -90 degrees
+    forward_angle_max = math.pi / 2  # 90 degrees
+    start_index = int((forward_angle_min - data.angle_min) / angle_range * num_points)
+    end_index = int((forward_angle_max - data.angle_min) / angle_range * num_points)
+
+    forward_scan = data.ranges[start_index : end_index + 1]
+
+    processed_scan = [
+        min(max_distance, r) if not math.isnan(r) else max_distance
+        for r in forward_scan
+    ]
+
+    return processed_scan
+
+def disparity_extension(
+    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.12
+):
+    lidar = processed_data
+    new_lidar = copy.deepcopy(lidar)
+    for i, scan_dist in enumerate(lidar):
+        if scan_dist < clearance_threshold:
+            continue
+        k = int(
+            math.atan((car_width + clearance_threshold) / scan_dist) / angle_increment
+        )
+        for j in range(max(0, i - k), min(len(lidar), i + k + 1)):
+            new_lidar[j] = min(new_lidar[j], lidar[i])
+
+    return new_lidar
+
+def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
+
+    max_depth = 0
+    max_ind = 0
+
+    for i, height in enumerate(extended_data):
+
+        if height > max_depth:
+            max_depth = height
+            max_ind = i
+    
+    targ_ind = max_ind
+
+    return targ_ind, max_depth
+
+
+def index_to_angle(index, angle_increment, num_points):
+    angle_min = -math.pi / 2
+    angle = math.degrees(angle_min + (index * angle_increment))
+    print(angle)
+    return angle
+
+
+def transform_steering(steering_angle):
+    if steering_angle > 30:
+        steering_angle = 30
+        print("\n\n\nEXCEED TURNING\n\n\n")
+    if steering_angle < -30:
+        steering_angle = -30
+        print("\n\n\nEXCEED TURNING\n\n\n")
+
+    command_angle = steering_angle * (10.0 / 3.0)
+    print("command angle: ", command_angle)
+    return command_angle
+
 
 def purepursuit_control_node(data):
     start_time = rospy.get_time()
@@ -125,6 +201,8 @@ def purepursuit_control_node(data):
     global raceline
     global wp_seq
     global curr_polygon
+    global obstacle_detected
+    global gap_angle
 
     raceline_pub.publish(raceline)
     command = AckermannDrive()
@@ -245,6 +323,10 @@ def purepursuit_control_node(data):
     steering_offset = -8
     command.speed = max(-100, dynamic_speed + steering_offset)
 
+    # if obstacle detected within 0.5 m directly ahead stop the car
+    if obstacle_detected == True:
+        command.steering_angle = transform_steering(gap_angle)
+
     # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
     # print("error: ", error)
     # dynamic_speed = (error) * (max_speed - min_speed) + min_speed
@@ -313,6 +395,24 @@ def purepursuit_control_node(data):
     print("Elapsed: ", (rospy.get_time() - start_time) * 1000)
 
 
+# callback for the laser scan, computes gap finder stuff and finds best gap if obstacle detected
+def callback(data):
+    global obstacle_detected
+    global gap_angle
+    processed_data = preprocess(data)
+    extended_data = disparity_extension(processed_data, data.angle_increment)
+
+    for datapoint in extended_data[len(extended_data)//2-1:len(extended_data)//2+1]:
+        if datapoint < 0.5:
+            obstacle_detected = True
+            best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
+            gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
+        else:
+            obstacle_detected = False
+
+    print("Obstacle detected: ", obstacle_detected)
+
+
 if __name__ == "__main__":
     try:
         rospy.init_node("pure_pursuit", anonymous=True)
@@ -322,11 +422,14 @@ if __name__ == "__main__":
 
         # This node subsribes to the pose estimate provided by the Particle Filter.
         # The message type of that pose message is PoseStamped which belongs to the geometry_msgs ROS package.
+        rospy.Subscriber("/car_4/scan", LaserScan, callback)
         rospy.Subscriber(
             "/car_4/particle_filter/viz/inferred_pose".format(car_name),
             PoseStamped,
             purepursuit_control_node,
         )
+        
+
         rospy.spin()
 
     except rospy.ROSInterruptException:

@@ -9,6 +9,7 @@ from collections import deque, defaultdict
 from ackermann_msgs.msg import AckermannDrive
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
+from nav_msgs.msg import Path
 import copy
 import tf
 import heapq
@@ -22,6 +23,68 @@ disparity_pub = rospy.Publisher(
 )
 max_area_pub = rospy.Publisher("/car_4/max_area_marker", Marker, queue_size=10)
 laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
+raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
+
+
+
+plan = []
+path_resolution = []
+frame_id = "map"
+raceline = None
+
+ # ADD RACELINE
+# def construct_path():
+#     # Function to construct the path from a CSV file
+#     # TODO: Modify this path to match the folder where the csv file containing the path is located.
+#     file_path = os.path.expanduser(
+#         "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth7.csv".format(
+#             trajectory_name
+#         )
+#     )
+#     # file_path = os.path.expanduser('~/map_ws/src/raceline.csv'.format(trajectory_name))
+
+#     global speed_factors
+
+#     with open(file_path) as csv_file:
+#         csv_reader = csv.reader(csv_file, delimiter=",")
+#         for waypoint in csv_reader:
+#             plan.append(waypoint[:4])  # x, y, z, w
+#             speed_factors.append(float(waypoint[4]))  # Speed factor
+
+#     # Convert string coordinates to floats and calculate path resolution
+#     for index in range(0, len(plan)):
+#         for point in range(0, len(plan[index])):
+#             plan[index][point] = float(plan[index][point])
+
+#     for index in range(1, len(plan)):
+#         dx = plan[index][0] - plan[index - 1][0]
+#         dy = plan[index][1] - plan[index - 1][1]
+#         path_resolution.append(math.sqrt(dx * dx + dy * dy))
+
+#     raceline_path = Path()
+#     raceline_path.header.frame_id = "map"
+
+#     global kd_tree
+#     coordinates = [
+#         (point[0], point[1]) for point in plan
+#     ]  # Assuming x, y coordinates are the first two elements
+#     kd_tree = KDTree(coordinates)
+
+#     for index, point in enumerate(plan):
+#         waypoint = PoseStamped()
+#         waypoint.header.frame_id = "map"
+#         waypoint.pose.position.x = point[0]
+#         waypoint.pose.position.y = point[1]
+#         raceline_path.poses.append(waypoint)
+
+#     global raceline
+#     raceline = raceline_path
+#     # rate = rospy.Rate(10)
+#     # while not rospy.is_shutdown():
+#     # raceline_pub.publish(raceline_path)
+#     #     rate.sleep()
+
+#     print(path_resolution)
 
 
 def angle_to_radians(angle):
@@ -70,27 +133,45 @@ def disparity_extension(
 
 
 def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
-    extended_data.append(0)
-    stk = []  # height, startind
-    max_area = 0
-    max_area_ind = 0
+    # extended_data.append(0)
+    # stk = []  # height, startind
+    # max_area = 0
+    # max_area_ind = 0
+    max_depth = 0
+    max_ind = 0
 
     for i, height in enumerate(extended_data):
-        if not stk or height > stk[-1][0]:
-            stk.append((height, i))
-        else:
-            earliest = i
-            while stk and stk[-1][0] > height:
-                prev = stk.pop()
-                prev_index = prev[1]
-                area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
-                if area > max_area:
-                    max_area = area
-                    max_area_ind = (prev_index + i) // 2
-            stk.append((height, earliest))
+    #     if not stk or height > stk[-1][0]:
+    #         stk.append((height, i))
+    #     else:
+    #         earliest = i
+    #         while stk and stk[-1][0] > height:
+    #             prev = stk.pop()
+    #             prev_index = prev[1]
+    #             area = (height_weight * prev[0]) * (width_weight * (i - prev[1]))
+    #             if area > max_area:
+    #                 max_area = area
+    #                 max_area_ind = (prev_index + i) // 2
+    #         stk.append((height, earliest))
 
-    print("max_area", max_area, max_area_ind, len(extended_data))
-    return max_area_ind, max_area
+    # print("max_area", max_area, max_area_ind, len(extended_data))
+    # return max_area_ind, max_area
+        if height > max_depth:
+            max_depth = height
+            max_ind = i
+    
+    targ_ind = max_ind
+    # mid_ind = len(extended_data)//2
+    # maxes = []
+    # for i, height in enumerate(extended_data):
+    #     if height == max_depth:
+    #         maxes.append(i)
+    
+    # for i in range(len(maxes)):
+    #     if abs(targ_ind-mid_ind) > abs(maxes[i]-mid_ind):
+    #         targ_ind = i
+        
+    return targ_ind, max_depth
 
 
 def find_n_largest_gaps(
@@ -242,12 +323,12 @@ def callback(data):
 
     best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
 
-    angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
+    # angles = find_n_largest_gaps(extended_data, data.angle_increment, 4)
 
-    best_gap_index = 0
-    for i, (angle, area) in enumerate(angles):
-        if abs(angle) < (angles[best_gap_index][0]):
-            best_gap_index = i
+    # best_gap_index = 0
+    # for i, (angle, area) in enumerate(angles):
+    #     if abs(angle) < (angles[best_gap_index][0]):
+    #         best_gap_index = i
 
     gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
@@ -263,4 +344,6 @@ if __name__ == "__main__":
     print("Hokuyo LIDAR node started")
     rospy.init_node("gap_finder", anonymous=True)
     rospy.Subscriber("/car_4/scan", LaserScan, callback)
+    global raceline
+    raceline_pub.publish(raceline)
     rospy.spin()
