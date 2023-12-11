@@ -62,7 +62,7 @@ global wp_seq
 global curr_polygon
 
 max_speed = 40.0
-min_speed = 25.0
+min_speed = 30.0
 
 speed_factors = []
 
@@ -74,7 +74,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth7.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8a.csv".format(
             trajectory_name
         )
     )
@@ -152,7 +152,7 @@ def preprocess(data, max_distance=5.0):
 
 
 def disparity_extension(
-    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.12
+    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.04
 ):
     lidar = processed_data
     new_lidar = copy.deepcopy(lidar)
@@ -258,8 +258,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 0.6
-    MAX_DISTANCE = 1.9
+    BASE_DISTANCE = 1.2
+    MAX_DISTANCE = 1.8
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
@@ -494,10 +494,10 @@ def callback(data):
     processed_data = preprocess(data)
     extended_data = disparity_extension(processed_data, data.angle_increment)
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
-
+    print(extended_data[len(extended_data)//2])
 
     for datapoint in extended_data[len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1]:
-        if datapoint < 0.02:
+        if datapoint < 1:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
             gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
@@ -518,7 +518,7 @@ if __name__ == "__main__":
 
         # This node subsribes to the pose estimate provided by the Particle Filter.
         # The message type of that pose message is PoseStamped which belongs to the geometry_msgs ROS package.
-        rospy.Subscriber("/car_4/scan", LaserScan, callback)
+        rospy.Subscriber("/car_4/scan", LaserScan, callback, queue_size=1)
         rospy.Subscriber(
             "/car_4/particle_filter/viz/inferred_pose".format(car_name),
             PoseStamped,
