@@ -12,7 +12,7 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Point32
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
 import tf
 from scipy.spatial import KDTree
 import copy
@@ -25,6 +25,9 @@ frame_id = "map"
 # trajectory_name     = str(sys.argv[2])
 raceline = None
 obstacle_detected = False
+disparity_pub = rospy.Publisher(
+    "/car_4/disparity_extension", MarkerArray, queue_size=10
+)
 
 # # global variables with launch file
 trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
@@ -409,12 +412,54 @@ def purepursuit_control_node(data):
     )
 
 
+def publish_disparity_data(
+    extended_data, angle_min, angle_max, angle_increment, frame_id="car_4_laser"
+):
+    marker_array = MarkerArray()
+    num_points = len(extended_data)
+
+    # Calculate start and end angles for the forward-facing scan
+    forward_angle_min = -math.pi / 2  # -90 degrees
+    forward_angle_max = math.pi / 2  # 90 degrees
+
+    # Calculate the starting index based on the minimum forward angle
+    start_index = int((forward_angle_min - angle_min) / angle_increment)
+    end_index = start_index + num_points
+
+    for i in range(num_points):
+        angle = angle_min + (start_index + i) * angle_increment
+        distance = extended_data[i]
+
+        marker = Marker()
+        marker.header.frame_id = frame_id
+        marker.header.stamp = rospy.Time.now()
+        marker.id = i
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
+        marker.pose.position.x = distance * math.cos(angle)
+        marker.pose.position.y = distance * math.sin(angle)
+        marker.pose.position.z = 0
+        marker.scale.x = 0.05  # Small sphere size
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
+        marker.color.a = 1.0  # Alpha must be non-zero
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+
+        marker_array.markers.append(marker)
+
+    disparity_pub.publish(marker_array)
+
+
 # callback for the laser scan, computes gap finder stuff and finds best gap if obstacle detected
 def callback(data):
     global obstacle_detected
     global gap_angle
     processed_data = preprocess(data)
     extended_data = disparity_extension(processed_data, data.angle_increment)
+    publish_disparity_data(extended_data, -90, 90, data.angle_increment)
+
 
     for datapoint in extended_data[
         len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
