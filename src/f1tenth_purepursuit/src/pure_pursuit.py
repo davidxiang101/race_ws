@@ -124,6 +124,7 @@ STEERING_RANGE = 100.0
 # vehicle physical parameters
 WHEELBASE_LEN = 0.325
 
+
 def preprocess(data, max_distance=5.0):
     num_points = len(data.ranges)
     center_index = num_points // 2
@@ -143,6 +144,7 @@ def preprocess(data, max_distance=5.0):
 
     return processed_scan
 
+
 def disparity_extension(
     processed_data, angle_increment, car_width=0.20, clearance_threshold=0.12
 ):
@@ -159,17 +161,16 @@ def disparity_extension(
 
     return new_lidar
 
-def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
 
+def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
     max_depth = 0
     max_ind = 0
 
     for i, height in enumerate(extended_data):
-
         if height > max_depth:
             max_depth = height
             max_ind = i
-    
+
     targ_ind = max_ind
 
     return targ_ind, max_depth
@@ -265,9 +266,14 @@ def purepursuit_control_node(data):
     curr_lookahead_dist = 0
     goal_idx = base_proj_idx
 
-    while (math.sqrt(((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2))< lookahead_distance):
+    while (
+        math.sqrt(
+            ((plan[goal_idx][0] - odom_x) ** 2) + ((plan[goal_idx][1] - odom_y) ** 2)
+        )
+        < lookahead_distance
+    ):
         goal_idx += 1
-        if goal_idx >= len(plan) :
+        if goal_idx >= len(plan):
             goal_idx = 0
 
     # After the loop, make sure goal_idx is valid for 'plan'
@@ -392,7 +398,9 @@ def purepursuit_control_node(data):
 
     steering_marker_pub.publish(steering_marker)
 
-    print("Elapsed: ", (rospy.get_time() - start_time) * 1000)
+    print(
+        f"Elapsed: {(rospy.get_time() - start_time) * 1000:.2f} ms, Ster Ang: {steering_angle:.2f}, Com Ang: {command.steering_angle:.2f}, Spd: {command.speed:.2f}, obscl: {obstacle_detected}"
+    )
 
 
 # callback for the laser scan, computes gap finder stuff and finds best gap if obstacle detected
@@ -402,11 +410,15 @@ def callback(data):
     processed_data = preprocess(data)
     extended_data = disparity_extension(processed_data, data.angle_increment)
 
-    for datapoint in extended_data[len(extended_data)//2-1:len(extended_data)//2+1]:
+    for datapoint in extended_data[
+        len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
+    ]:
         if datapoint < 0.5:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
-            gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
+            gap_angle = index_to_angle(
+                best_gap_index, data.angle_increment, len(extended_data)
+            )
         else:
             obstacle_detected = False
 
@@ -428,7 +440,6 @@ if __name__ == "__main__":
             PoseStamped,
             purepursuit_control_node,
         )
-        
 
         rospy.spin()
 
