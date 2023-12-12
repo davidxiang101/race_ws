@@ -80,7 +80,7 @@ def disparity_extension(
     return new_lidar
 
 
-def find_gap(extended_data, inc, height_weight=1, width_weight=1):
+def find_gap(extended_data, inc, height_weight=1, pp_weight=1.5):
     global pp_ang  # this is acc an index
     global num_points
     max_depth = 0
@@ -88,7 +88,7 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
 
     for i, height in enumerate(extended_data):
         if height > max_depth:
-            max_depth = height * (1 + (abs(pp_ang - i) / num_points))
+            max_depth = height * (1 + pp_weight * (abs(pp_ang - i) / num_points))
             max_ind = i
 
     targ_ind = max_ind
@@ -113,8 +113,8 @@ def transform_steering(steering_angle):
 
 
 def dynamic_speed(command_angle):
-    max_speed = 15
-    min_speed = 10
+    max_speed = 17
+    min_speed = 12
 
     error = 1 - (abs(command_angle) / 100)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
@@ -215,7 +215,7 @@ def callback(data):
     command = AckermannDrive()
     command.steering_angle = transform_steering(gap_angle)
     command.speed = dynamic_speed(command.steering_angle)
-    threshold = 1.5
+    threshold = 1.3
     if (
         extended_data[pp_ang] < threshold
     ):

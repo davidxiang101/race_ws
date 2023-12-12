@@ -49,7 +49,7 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 
-max_speed = 25.0
+max_speed = 27.0
 min_speed = 20.0
 
 speed_factors = []
@@ -134,31 +134,11 @@ def purepursuit_control_node(data):
     odom_x = data.pose.position.x
     odom_y = data.pose.position.y
 
-    # TODO 1: The reference path is stored in the 'plan' array.
-    # Your task is to find the base projection of the car on this reference path.
-    # The base projection is defined as the closest point on the reference path to the car's current position.
-    # Calculate the index and position of this base projection on the reference path.
-    # print(plan)
-
-    # Query the k-d tree for the nearest neighbor
-    # uncomment when ready
+    # Query the k-d tree for the nearest neighbor=
     odom_position = (data.pose.position.x, data.pose.position.y)
     base_proj_idx = kd_tree.query(odom_position)[1]
     base_proj_pos = plan[base_proj_idx][:2]  # x, y
     pose_x, pose_y = base_proj_pos
-
-    # base_proj_idx = 0
-    # base_proj_dist = sys.maxsize
-    # base_proj_pos = (0, 0)
-
-    # for idx in range(len(plan)):
-    #     x, y, z, w = plan[idx]
-    #     dist_to_point = math.sqrt(math.pow(odom_x - x, 2) + math.pow(odom_y - y, 2))
-    #     if base_proj_dist > dist_to_point:
-    #         base_proj_dist = dist_to_point
-    #         base_proj_pos = (x, y)  # only x, y
-    #         base_proj_idx = idx
-    # pose_x, pose_y = base_proj_pos
 
     # Calculate heading angle of the car (in radians)
     heading = tf.transformations.euler_from_quaternion(
