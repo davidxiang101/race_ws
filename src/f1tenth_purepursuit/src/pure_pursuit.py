@@ -203,8 +203,9 @@ def purepursuit_control_node(data):
 
     # Create and publish the angle message
     angle_msg = AckermannDrive()
-    angle_msg.steering_angle = target_angle
-    self.angle_pub.publish(angle_msg)
+    angle_msg.steering_angle = math.degrees(target_angle)
+    global angle_pub
+    angle_pub.publish(angle_msg)
 
     # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y

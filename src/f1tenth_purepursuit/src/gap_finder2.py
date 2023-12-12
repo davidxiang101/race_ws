@@ -27,7 +27,7 @@ angle_increment = 0
 num_points = 0
 
 
-def preprocess(data, max_distance=5.0):
+def preprocess(data, max_distance=3.0):
     # Convert data.ranges to a NumPy array for efficient processing
     scan_ranges = np.array(data.ranges)
 
@@ -45,8 +45,14 @@ def preprocess(data, max_distance=5.0):
 
     # Process the scan data
     # Replace NaNs with max_distance and cap values at max_distance
-    processed_scan = np.nan_to_num(forward_scan, nan=max_distance)
+    processed_scan = np.where(np.isnan(forward_scan), max_distance, forward_scan)
     processed_scan = np.minimum(processed_scan, max_distance)
+
+
+    global angle_increment
+    angle_increment = data.angle_increment
+    global num_points
+    num_points = len(processed_scan)
 
     return processed_scan
 
@@ -55,32 +61,33 @@ def disparity_extension(
     processed_data, angle_increment, car_width=0.20, clearance_threshold=0.06
 ):
     # Create an array to hold the extended data
-    new_lidar = lidar.copy()
+    new_lidar = processed_data.copy()
 
     # Vectorize the extension computation
-    indices = np.arange(len(lidar))
-    for i, scan_dist in enumerate(lidar):
+    indices = np.arange(len(processed_data))
+    for i, scan_dist in enumerate(processed_data):
         if scan_dist >= clearance_threshold:
             k = int(
                 math.atan((car_width + clearance_threshold) / scan_dist)
                 / angle_increment
             )
             start = max(0, i - k)
-            end = min(len(lidar), i + k + 1)
-            new_lidar[start:end] = np.minimum(new_lidar[start:end], lidar[i])
+            end = min(len(processed_data), i + k + 1)
+            new_lidar[start:end] = np.minimum(new_lidar[start:end], processed_data[i])
 
     return new_lidar
 
 
-def find_gap(extended_data, inc, height_weight=1, pp_weight=1.5):
+def find_gap(extended_data, inc, height_weight=1, pp_weight=0.5):
     global pp_ang  # this is acc an index
     global num_points
     max_depth = 0
     max_ind = 0
 
     for i, height in enumerate(extended_data):
-        if height > max_depth:
-            max_depth = height * (1 + pp_weight * (1 - (abs(pp_ang - i) / num_points)))
+        pp_adjust = (1 + pp_weight * (1 - (abs(pp_ang - i) / num_points)))
+        if height * pp_adjust > max_depth:
+            max_depth = height * pp_adjust
             max_ind = i
 
     targ_ind = max_ind
@@ -124,7 +131,7 @@ def publish_disparity_data(
     num_points = len(extended_data)
 
     # Calculate start and end angles for the forward-facing scan
-    forward_angle_min = -math.pi / 4  # -90 degrees
+    forward_angle_min = -math.pi /4  # -90 degrees
     forward_angle_max = math.pi / 4  # 90 degrees
 
     # Calculate the starting index based on the minimum forward angle
@@ -189,16 +196,12 @@ def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
 
 
 def callback(data):
-    global angle_increment
-    angle_increment = data.angle_increment
-    global num_points
-    num_points = len(data.ranges)
 
     processed_data = preprocess(data)
 
     extended_data = disparity_extension(processed_data, data.angle_increment)
 
-    # publish_disparity_data(extended_data, -45, 45, data.angle_increment)
+    publish_disparity_data(extended_data, -45, 45, data.angle_increment)
 
     best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
 
@@ -212,6 +215,7 @@ def callback(data):
         command.speed = command.speed * -1
     command_pub.publish(command)
 
+    print(gap_angle)
     publish_steering_marker(gap_angle)
 
 
@@ -228,11 +232,13 @@ def pp_callback(data):
     global num_points
 
     command_angle = data.steering_angle
-    print(command_angle)
+    command_angle = min(command_angle, 45)
+    command_angle = max(command_angle, -45)
     ang = angle_increment
     num = num_points
 
     index = angle_to_index(command_angle, ang, num)
+    # print('command_angle: ', command_angle)
     pp_ang = index
 
 
