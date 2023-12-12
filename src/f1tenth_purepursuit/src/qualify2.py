@@ -23,10 +23,10 @@ path_resolution = []
 frame_id = "map"
 raceline = None
 obstacle_detected = False
+slow_down = False
 
 
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
-slow_down = False
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
@@ -41,9 +41,8 @@ polygon_pub = rospy.Publisher(
 )
 raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
 goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
+
 # Global variables for waypoint sequence and current polygon
-
-
 global wp_seq
 global curr_polygon
 
@@ -141,7 +140,7 @@ def disparity_extension(
     return new_lidar
 
 
-def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
+def find_gap(extended_data, inc, height_weight=1, width_weight=1):
     max_depth = 0
     max_ind = 0
 
@@ -161,7 +160,8 @@ def index_to_angle(index, angle_increment, num_points):
     return angle
 
 
-def transform_steering(steering_angle):
+def transform_steering(steering_angle, steering_offset=-2.4):
+    steering_angle += steering_offset
     if steering_angle > 30:
         steering_angle = 30
         print("\nEXCEED TURNING\n")
@@ -211,13 +211,10 @@ def purepursuit_control_node(data):
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
 
-    # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
-    # This target point should be determined based on the path and the base projection you have already calculated.
-    # The target point is a specific point on the reference path that the car should aim towards - lookahead distance ahead of the base projection on the reference path.
-    # Calculate the position of this goal/target point along the path.
+    # get goal idx
 
     curr_lookahead_dist = 0
-    goal_idx = base_proj_idx
+    goal_idx = base_proj_idx + 5
 
     while (
         math.sqrt(
@@ -229,23 +226,16 @@ def purepursuit_control_node(data):
         if goal_idx >= len(plan):
             goal_idx = 0
 
-    # After the loop, make sure goal_idx is valid for 'plan'
-    goal_idx = goal_idx % len(path_resolution)
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
-    # print(base_proj_idx, goal_idx)
 
-    # TODO 4: Implement the pure pursuit algorithm to compute the steering angle given the pose of the car, target point, and lookahead distance.
-    # Your code here
-
-    # change to reference frame of the car
+    # purepursuit algo
     translated_x = goal_pos[0] - odom_x
     translated_y = goal_pos[1] - odom_y
 
     rotated_x = translated_x * math.cos(-heading) - translated_y * math.sin(-heading)
     rotated_y = translated_x * math.sin(-heading) + translated_y * math.cos(-heading)
 
-    # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y
     x_t = rotated_x
     dist_to_goal = math.sqrt(x_t * x_t + y_t * y_t)
@@ -253,35 +243,17 @@ def purepursuit_control_node(data):
     steering_angle = math.degrees(
         math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal)
     )
-    # print("steering angle: ", steering_angle)
 
-    # TODO 5: Ensure that the calculated steering angle is within the STEERING_RANGE and assign it to command.steering_angle
-    # Your code here
+    command.steering_angle = transform_steering(steering_angle)
 
-    # -100 command correlates to 30 degrees right of the car
-    # 100 command correlates to 30 degrees left of the car
-    # 0 is straight (0 degrees)
-    if steering_angle > 30:
-        steering_angle = 30
-        print("\nEXCEED TURNING\n")
-    if steering_angle < -30:
-        steering_angle = -30
-        print("\nEXCEED TURNING\n")
-
-    command.steering_angle = steering_angle * (10.0 / 3.0)
-    # print("command angle: ", command.steering_angle)
-
-    # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
+    # Dynamic Velocity Scaling
 
     global max_speed
     global min_speed
 
-    # uncomment when ready
     current_speed_factor = speed_factors[base_proj_idx]
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
-    steering_offset = -8
-    final_speed = max(-100, dynamic_speed + steering_offset)
-    command.speed = final_speed
+    command.speed = dynamic_speed
 
     # if nearing obstacle
     if slow_down == True:
