@@ -215,8 +215,8 @@ def callback(data):
     command = AckermannDrive()
     command.steering_angle = transform_steering(gap_angle)
     command.speed = dynamic_speed(command.steering_angle)
-    threshold = 1.3
-    if (extended_data[len(extended_data) // 2] < threshold) or (
+    threshold = 1.5
+    if (
         extended_data[pp_ang] < threshold
     ):
         command.speed = command.speed * -1
