@@ -17,6 +17,7 @@ import tf
 from scipy.spatial import KDTree
 import copy
 
+
 # Global variables for storing the path, path resolution, frame ID, and car details
 plan = []
 path_resolution = []
@@ -45,6 +46,9 @@ steering_marker_pub = rospy.Publisher(
 )
 raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
 goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
+# Inside your node initialization
+angle_pub = rospy.Publisher("/pure_pursuit/angle", AckermannDrive, queue_size=10)
+
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
@@ -195,6 +199,13 @@ def purepursuit_control_node(data):
     rotated_x = translated_x * math.cos(-heading) - translated_y * math.sin(-heading)
     rotated_y = translated_x * math.sin(-heading) + translated_y * math.cos(-heading)
 
+    target_angle = math.atan2(rotated_y, rotated_x)
+
+    # Create and publish the angle message
+    angle_msg = AckermannDrive()
+    angle_msg.steering_angle = target_angle
+    self.angle_pub.publish(angle_msg)
+
     # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y
     x_t = rotated_x
@@ -280,7 +291,6 @@ def purepursuit_control_node(data):
     steering_marker.color.g = 1.0
 
     steering_marker_pub.publish(steering_marker)
-
 
 
 if __name__ == "__main__":
