@@ -38,11 +38,11 @@ def weighted_average_future_velocity(
 
 
 def create_dynamic_lookahead_speed_profile(
-    curvature, min_speed, max_speed, lookahead_range
+    curvature, min_speed, max_speed, lookahead_range, weight_decay=0.97
 ):
     # Adjusting speed based on weighted average of future velocities
     speed_profile = weighted_average_future_velocity(
-        curvature, lookahead_range, min_speed, max_speed
+        curvature, lookahead_range, min_speed, max_speed, weight_decay
     )
     return speed_profile
 
@@ -63,7 +63,7 @@ def speed_from_curvature(curvature, min_speed, max_speed):
     # Assuming higher curvature demands lower speed
     # This function maps curvature values to speed, inversely proportional
     normalized_curvature = curvature / np.max(curvature)  # Normalizing
-    return min_speed + (max_speed - min_speed) * (1 - normalized_curvature)
+    return min_speed + (max_speed - min_speed) * (1 - normalized_curvature**2)
 
 
 def calculate_future_curvature(curvature, lookahead_distance):
@@ -103,7 +103,13 @@ def interpolate_path(x, y, num_points=500):
 
 
 def smooth_and_refine_raceline(
-    csv_file, output_file, sigma=3, num_points=500, map_yaml_file=None
+    csv_file,
+    output_file,
+    sigma=3,
+    num_points=500,
+    lookahead_range=125,
+    weight_decay=0.97,
+    map_yaml_file=None,
 ):
     # Load raceline data
     raceline = pd.read_csv(csv_file, header=None, names=["x", "y", "z", "w"])
@@ -123,9 +129,8 @@ def smooth_and_refine_raceline(
 
     # Curvature calculation
     curvature = calculate_curvature(x_high_res, y_high_res)
-    lookahead_range = 125  # Adjust based on track and car dynamics
     speed_profile = create_dynamic_lookahead_speed_profile(
-        curvature, 0.0, 1.0, lookahead_range
+        curvature, 0.0, 1.0, lookahead_range, weight_decay
     )
 
     # Create DataFrame for the smoothed raceline
@@ -187,8 +192,10 @@ def smooth_and_refine_raceline(
 # Usage
 smooth_and_refine_raceline(
     "../path/raceline8.csv",
-    "../path/raceline_final_smooth8b.csv",
-    sigma=6,
+    "../path/raceline_final_smooth8c.csv",
+    sigma=7,
     num_points=1000,
+    lookahead_range=140,
+    weight_decay=0.99,
     map_yaml_file=None,
 )
