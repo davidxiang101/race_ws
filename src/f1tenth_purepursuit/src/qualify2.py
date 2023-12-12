@@ -25,6 +25,7 @@ raceline = None
 obstacle_detected = False
 slow_down = False
 
+car_name = 'car_4'
 
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
@@ -32,10 +33,10 @@ steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
 )
 command_pub = rospy.Publisher(
-    "/car_4/offboard/command".format(car_name), AckermannDrive, queue_size=1
+    "/car_4/offboard/command", AckermannDrive, queue_size=1
 )
 polygon_pub = rospy.Publisher(
-    "/car_4/purepursuit_control/visualize".format(car_name),
+    "/car_4/purepursuit_control/visualize",
     PolygonStamped,
     queue_size=1,
 )
@@ -57,10 +58,9 @@ control_polygon = PolygonStamped()
 
 def construct_path():
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
-            trajectory_name
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv"
         )
-    )
+    
     global speed_factors
 
     with open(file_path) as csv_file:
@@ -254,13 +254,14 @@ def purepursuit_control_node(data):
     current_speed_factor = speed_factors[base_proj_idx]
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
     command.speed = dynamic_speed
+    final_speed = dynamic_speed
 
     # if nearing obstacle
     if slow_down == True:
         if final_speed > 30:
-            command.speed = final_speed * 0.6
+            command.speed = final_speed * 0.4
         else:
-            command.speed = final_speed * 0.6
+            command.speed = final_speed * 0.4
 
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
@@ -461,7 +462,7 @@ if __name__ == "__main__":
         # The message type of that pose message is PoseStamped which belongs to the geometry_msgs ROS package.
         rospy.Subscriber("/car_4/scan", LaserScan, callback, queue_size=1)
         rospy.Subscriber(
-            "/car_4/particle_filter/viz/inferred_pose".format(car_name),
+            "/car_4/particle_filter/viz/inferred_pose",
             PoseStamped,
             purepursuit_control_node,
         )

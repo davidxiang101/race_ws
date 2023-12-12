@@ -257,7 +257,7 @@ def purepursuit_control_node(data):
 
     # dynamic lookahead distance (needs to be tuned and tested)
     BASE_DISTANCE = 0.8
-    MAX_DISTANCE = 1.9
+    MAX_DISTANCE = 2.2
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
