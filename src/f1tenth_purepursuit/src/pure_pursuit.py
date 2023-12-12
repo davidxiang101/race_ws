@@ -33,7 +33,7 @@ car_name = rospy.get_param("~arg2", "car_4")
 
 # Publishers for sending driving commands and visualizing the control polygon
 command_pub = rospy.Publisher(
-    "/car_4/offboard/command".format(car_name), AckermannDrive, queue_size=1
+    "/pure_pursuit/command".format(car_name), AckermannDrive, queue_size=1
 )
 polygon_pub = rospy.Publisher(
     "/car_4/purepursuit_control/visualize".format(car_name),
@@ -109,7 +109,7 @@ def construct_path():
     # raceline_pub.publish(raceline_path)
     #     rate.sleep()
 
-    print(path_resolution)
+    # print(path_resolution)
 
 
 # Steering Range from -100.0 to 100.0
@@ -175,8 +175,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 0.8
-    MAX_DISTANCE = 2.2
+    BASE_DISTANCE = 0.6
+    MAX_DISTANCE = 2.0
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
@@ -235,10 +235,8 @@ def purepursuit_control_node(data):
     # 0 is straight (0 degrees)
     if steering_angle > 30:
         steering_angle = 30
-        print("\nEXCEED TURNING\n")
     if steering_angle < -30:
         steering_angle = -30
-        print("\nEXCEED TURNING\n")
 
     command.steering_angle = steering_angle * (10.0 / 3.0)
 
@@ -303,13 +301,6 @@ def purepursuit_control_node(data):
 
     steering_marker_pub.publish(steering_marker)
 
-    print(
-        "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}, Obstacle Detected: {}".format(
-            (rospy.get_time() - start_time) * 1000,
-            steering_angle,
-            command.steering_angle,
-            command.speed)
-    )
 
 
 if __name__ == "__main__":

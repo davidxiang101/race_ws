@@ -3,55 +3,65 @@ import rospy
 from ackermann_msgs.msg import AckermannDrive
 
 
-class QualifyControl:
-    def __init__(self):
-        # Initialize node
-        rospy.init_node("qualify_control", anonymous=True)
+# Variables to store the latest data from both algorithms
+gap_finder_data = None
+pure_pursuit_data = None
 
-        # Subscribers to listen to the gap finder and pure pursuit nodes
-        rospy.Subscriber(
-            "/gap_finder/command", AckermannDrive, self.gap_finder_callback
-        )
-        rospy.Subscriber(
-            "/pure_pursuit/command", CustomDrive, self.pure_pursuit_callback
-        )
+# Additional logic variables
+use_gap_finder = False  # Logic to decide which algorithm to use
 
-        # Publisher to send final command to the car
-        self.command_pub = rospy.Publisher(
-            "/car_4/offboard/command", AckermannDrive, queue_size=1
-        )
 
-        # Variables to store the latest data from both algorithms
-        self.gap_finder_data = None
-        self.pure_pursuit_data = None
+def gap_finder_callback(data):
+    global use_gap_finder
+    global gap_finder_data
+    gap_finder_data = data
+    if gap_finder_data is not None and gap_finder_data.speed < 0:
+        use_gap_finder = True
+        gap_finder_data.speed = gap_finder_data.speed * -1.0
+    else:
+        use_gap_finder = False
+    decide_and_publish()
 
-        # Additional logic variables
-        self.use_gap_finder = False  # Logic to decide which algorithm to use
+def pure_pursuit_callback(data):
+    global pure_pursuit_data
+    pure_pursuit_data = data
+    # print("pursue")
+    decide_and_publish()
 
-    def gap_finder_callback(self, data):
-        self.gap_finder_data = data
-        self.decide_and_publish()
 
-    def pure_pursuit_callback(self, data):
-        self.pure_pursuit_data = data
-        self.decide_and_publish()
+def decide_and_publish():
+    global gap_finder_data
+    global pure_pursuit_data
+    global use_gap_finder
+    
+    # Use gap finder data if an obstacle is detected
+    if use_gap_finder:
+        command_pub.publish(gap_finder_data)
+        print("gap finder")
+    # Otherwise, use pure pursuit data
+    elif pure_pursuit_data is not None:
+        print("pure pursuit")
+        command_pub.publish(pure_pursuit_data)
+    # Reset data after use
+    # print("NONE")
 
-    def decide_and_publish(self):
-        # Use gap finder data if an obstacle is detected
-        if self.gap_finder_data is not None and self.gap_finder_data.obstacle_detected:
-            self.command_pub.publish(self.gap_finder_data)
-        # Otherwise, use pure pursuit data
-        elif self.pure_pursuit_data is not None:
-            self.command_pub.publish(self.pure_pursuit_data)
-        # Reset data after use
-        self.gap_finder_data = None
-        self.pure_pursuit_data = None
-
-    def run(self):
-        # Keep node running
-        rospy.spin()
 
 
 if __name__ == "__main__":
-    node = QualifyControl()
-    node.run()
+    rospy.init_node("qualify_control", anonymous=True)
+    # print(";alskjdfa;lsdkjfas;lkfdja;slkdfj")
+
+    # Subscribers to listen to the gap finder and pure pursuit nodes
+    rospy.Subscriber(
+        "/gap_finder/command", AckermannDrive, gap_finder_callback
+    )
+    rospy.Subscriber(
+        "/pure_pursuit/command", AckermannDrive, pure_pursuit_callback
+    )
+
+    # Publisher to send final command to the car
+    command_pub = rospy.Publisher(
+        "/car_4/offboard/command", AckermannDrive, queue_size=1
+    )
+    
+    rospy.spin()
