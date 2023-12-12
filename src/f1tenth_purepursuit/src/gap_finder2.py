@@ -88,7 +88,7 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
 
     for i, height in enumerate(extended_data):
         if height > max_depth:
-            max_depth = height * (abs(pp_ang - i) / num_points)
+            max_depth = height * (1 + (abs(pp_ang - i) / num_points))
             max_ind = i
 
     targ_ind = max_ind
