@@ -81,12 +81,14 @@ def disparity_extension(
 
 
 def find_gap(extended_data, inc, height_weight=1, width_weight=1):
+    global pp_ang  # this is acc an index
+    global num_points
     max_depth = 0
     max_ind = 0
 
     for i, height in enumerate(extended_data):
         if height > max_depth:
-            max_depth = height
+            max_depth = height * (abs(pp_ang - i) / num_points)
             max_ind = i
 
     targ_ind = max_ind
