@@ -1,6 +1,6 @@
 <launch>
 
-  <node pkg="f1tenth_purepursuit" type="qualify2.py" name="qualify" output="screen">
+  <node pkg="f1tenth_purepursuit" type="time_trial.py" name="tt" output="screen">
         <param name="arg1" type="str" value="raceline_final"/>
         <param name="arg2" type="str" value="car_4"/>
     </node>

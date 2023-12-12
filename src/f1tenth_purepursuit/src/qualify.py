@@ -61,7 +61,7 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 
-max_speed = 40.0
+max_speed = 45.0
 min_speed = 30.0
 
 speed_factors = []
@@ -74,7 +74,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8a.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
             trajectory_name
         )
     )

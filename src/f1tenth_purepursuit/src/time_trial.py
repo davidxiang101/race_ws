@@ -59,8 +59,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 
-max_speed = 67.0
-min_speed = 37.0
+max_speed = 56.0
+min_speed = 40.0
 
 speed_factors = []
 
@@ -72,7 +72,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8a.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
             trajectory_name
         )
     )
@@ -256,8 +256,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 1.4
-    MAX_DISTANCE = 2.3
+    BASE_DISTANCE = 1.2
+    MAX_DISTANCE = 1.9
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
@@ -338,23 +338,10 @@ def purepursuit_control_node(data):
         # command.steering_angle = transform_steering(gap_angle)
         command.speed = 0
 
-    # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
-    # print("error: ", error)
-    # dynamic_speed = (error) * (max_speed - min_speed) + min_speed
-    # command.speed = min(max_speed, dynamic_speed)
-    # command.speed = max(min_speed, dynamic_speed)
-    # command.speed = dynamic_speed
-    # print("dynamic speed: ", command.speed)
 
     command_pub.publish(command)
 
     # Visualization code
-    # Make sure the following variables are properly defined in your TODOs above:
-    # - odom_x, odom_y: Current position of the car
-    # - pose_x, pose_y: Position of the base projection on the reference path
-    # - target_x, target_y: Position of the goal/target point4
-
-    # These are set to zero only so that the template code builds.
 
     base_link = Point32()
     nearest_pose = Point32()
@@ -485,30 +472,6 @@ def publish_disparity_data(
     disparity_pub.publish(marker_array)
 
 
-# callback for the laser scan, computes gap finder stuff and finds best gap if obstacle detected
-def callback(data):
-    global obstacle_detected
-    global gap_angle
-    processed_data = preprocess(data)
-    extended_data = disparity_extension(processed_data, data.angle_increment)
-    publish_disparity_data(extended_data, -90, 90, data.angle_increment)
-
-    for datapoint in extended_data[
-        len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
-    ]:
-        if datapoint < 0.02:
-            obstacle_detected = True
-            best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
-            gap_angle = index_to_angle(
-                best_gap_index, data.angle_increment, len(extended_data)
-            )
-            publish_steering_marker(gap_angle)
-
-        else:
-            obstacle_detected = False
-
-    print("Obstacle detected: ", obstacle_detected)
-
 
 if __name__ == "__main__":
     try:
@@ -517,9 +480,6 @@ if __name__ == "__main__":
             rospy.loginfo("obtaining trajectory")
             construct_path()
 
-        # This node subsribes to the pose estimate provided by the Particle Filter.
-        # The message type of that pose message is PoseStamped which belongs to the geometry_msgs ROS package.
-        # rospy.Subscriber("/car_4/scan", LaserScan, callback)
         rospy.Subscriber(
             "/car_4/particle_filter/viz/inferred_pose".format(car_name),
             PoseStamped,
