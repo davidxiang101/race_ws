@@ -37,12 +37,12 @@ class QualifyControl:
         self.decide_and_publish()
 
     def decide_and_publish(self):
-        # Logic to decide which algorithm to use
-        if self.use_gap_finder and self.gap_finder_data is not None:
+        # Use gap finder data if an obstacle is detected
+        if self.gap_finder_data is not None and self.gap_finder_data.obstacle_detected:
             self.command_pub.publish(self.gap_finder_data)
+        # Otherwise, use pure pursuit data
         elif self.pure_pursuit_data is not None:
             self.command_pub.publish(self.pure_pursuit_data)
-
         # Reset data after use
         self.gap_finder_data = None
         self.pure_pursuit_data = None
