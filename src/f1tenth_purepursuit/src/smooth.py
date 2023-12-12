@@ -4,6 +4,47 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+from matplotlib.image import imread
+import yaml
+from scipy.ndimage import rotate
+import os
+
+
+def weighted_average_future_velocity(
+    curvature, lookahead_range, min_speed, max_speed, weight_decay=0.97
+):
+    """
+    Calculate a weighted average of future velocities over a lookahead range.
+    Closer points have more weight than farther points.
+    """
+    future_velocities = speed_from_curvature(curvature, min_speed, max_speed)
+    weighted_velocities = np.zeros_like(future_velocities)
+
+    for i in range(len(curvature)):
+        total_weight = 0.0
+        weighted_sum = 0.0
+        for j in range(lookahead_range):
+            if i + j < len(curvature):
+                weight = weight_decay**j
+                total_weight += weight
+                weighted_sum += future_velocities[i + j] * weight
+        if total_weight > 0:
+            weighted_velocities[i] = weighted_sum / total_weight
+        else:
+            weighted_velocities[i] = future_velocities[i]
+
+    return weighted_velocities
+
+
+def create_dynamic_lookahead_speed_profile(
+    curvature, min_speed, max_speed, lookahead_range
+):
+    # Adjusting speed based on weighted average of future velocities
+    speed_profile = weighted_average_future_velocity(
+        curvature, lookahead_range, min_speed, max_speed
+    )
+    return speed_profile
 
 
 def calculate_curvature(x, y):
@@ -61,65 +102,70 @@ def interpolate_path(x, y, num_points=500):
     return x_interp, y_interp
 
 
-def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
+def smooth_and_refine_raceline(
+    csv_file, output_file, sigma=3, num_points=500, map_yaml_file=None
+):
     # Load raceline data
     raceline = pd.read_csv(csv_file, header=None, names=["x", "y", "z", "w"])
     x_original = raceline["x"].values
     y_original = raceline["y"].values
 
     # Smooth the raceline
-    x_smooth, y_smooth = smooth_path(x_original, y_original, sigma=sigma)
-
-    # Increase the number of points
-    x_high_res, y_high_res = interpolate_path(x_smooth, y_smooth, num_points=num_points)
-
-    # Creating a DataFrame for the high-resolution smoothed raceline
-    smoothed_raceline = pd.DataFrame(
-        {
-            "x": x_high_res,
-            "y": y_high_res,
-            "z": np.interp(
-                np.linspace(0, 1, num_points),
-                np.linspace(0, 1, len(raceline)),
-                raceline["z"],
-            ),  # Interpolating z values
-            "w": np.interp(
-                np.linspace(0, 1, num_points),
-                np.linspace(0, 1, len(raceline)),
-                raceline["w"],
-            ),  # Interpolating w values
-        }
+    x_smooth, y_smooth = gaussian_filter1d(x_original, sigma), gaussian_filter1d(
+        y_original, sigma
     )
 
-    # Assuming you have curvature data
+    # Interpolate path
+    t = np.linspace(0, 1, len(x_smooth))
+    t_new = np.linspace(0, 1, num_points)
+    f_x, f_y = interp1d(t, x_smooth, kind="cubic"), interp1d(t, y_smooth, kind="cubic")
+    x_high_res, y_high_res = f_x(t_new), f_y(t_new)
+
+    # Curvature calculation
     curvature = calculate_curvature(x_high_res, y_high_res)
-    lookahead_distance = 25  # Adjust this based on your track and car dynamics
-
-    speed_profile = create_advanced_speed_profile(
-        curvature, 0.0, 1.0, lookahead_distance
+    lookahead_range = 125  # Adjust based on track and car dynamics
+    speed_profile = create_dynamic_lookahead_speed_profile(
+        curvature, 0.0, 1.0, lookahead_range
     )
 
-    smoothed_raceline["speed_factor"] = speed_profile
+    # Create DataFrame for the smoothed raceline
+    smoothed_raceline = pd.DataFrame(
+        {"x": x_high_res, "y": y_high_res, "speed_factor": speed_profile}
+    )
 
     # Plotting
     plt.figure(figsize=(12, 6))
 
-    # Plot original points
+    # If a YAML file is provided, read and display the associated PGM map
+    if map_yaml_file and os.path.exists(map_yaml_file):
+        with open(map_yaml_file, "r") as file:
+            map_data = yaml.safe_load(file)
+        pgm_file = map_data.get("image")
+        if pgm_file and os.path.exists(pgm_file):
+            pgm_image = imread(pgm_file)
+            pgm_image = rotate(pgm_image, -15, reshape=False)  # Rotate the image
+            height, width = pgm_image.shape
+            x_min, y_min = map_data.get("origin", [0, 0])[:2]
+            x_max, y_max = x_min + width * map_data.get(
+                "resolution", 0.05
+            ), y_min + height * map_data.get("resolution", 0.05)
+            plt.imshow(
+                pgm_image,
+                cmap="gray",
+                extent=[x_min, x_max, y_min, y_max],
+                origin="lower",
+            )
+
+    # Plot original and smoothed raceline
     plt.plot(x_original, y_original, "o", label="Original Points", zorder=1)
-
-    # High-resolution smoothed raceline with speed factor coloring
-    speed_factors = smoothed_raceline["speed_factor"]
     scatter = plt.scatter(
-        x_high_res, y_high_res, c=speed_factors, cmap=cm.gist_rainbow, zorder=2
+        x_high_res, y_high_res, c=speed_profile, cmap=cm.gist_rainbow, zorder=2
     )
-
-    # Create a colorbar for the speed factor
     cbar = plt.colorbar(scatter)
     cbar.set_label("Speed Factor")
-
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
-    plt.title("High-Resolution Raceline with Speed Factor Coloring")
+    plt.title("High-Resolution Raceline with Speed Factor Coloring and Track Map")
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -133,6 +179,7 @@ def smooth_and_refine_raceline(csv_file, output_file, sigma=3, num_points=500):
 smooth_and_refine_raceline(
     "../path/raceline8.csv",
     "../path/raceline_final_smooth8b.csv",
-    sigma=5,
+    sigma=6,
     num_points=1000,
+    map_yaml_file=None,
 )
