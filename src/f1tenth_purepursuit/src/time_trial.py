@@ -59,7 +59,7 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 
-max_speed = 58.0
+max_speed = 55.0
 min_speed = 20.0
 
 speed_factors = []
