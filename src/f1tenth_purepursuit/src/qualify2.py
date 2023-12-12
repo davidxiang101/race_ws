@@ -25,16 +25,13 @@ raceline = None
 obstacle_detected = False
 slow_down = False
 
-car_name = 'car_4'
+car_name = "car_4"
 
-disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
 )
-command_pub = rospy.Publisher(
-    "/car_4/offboard/command", AckermannDrive, queue_size=1
-)
+command_pub = rospy.Publisher("/car_4/offboard/command", AckermannDrive, queue_size=1)
 polygon_pub = rospy.Publisher(
     "/car_4/purepursuit_control/visualize",
     PolygonStamped,
@@ -59,8 +56,8 @@ control_polygon = PolygonStamped()
 def construct_path():
     file_path = os.path.expanduser(
         "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv"
-        )
-    
+    )
+
     global speed_factors
 
     with open(file_path) as csv_file:
@@ -282,6 +279,8 @@ def purepursuit_control_node(data):
 
     command_pub.publish(command)
 
+    publish_steering_marker(steering_angle)
+
     # Visualization code
     # Make sure the following variables are properly defined in your TODOs above:
     # - odom_x, odom_y: Current position of the car
@@ -290,52 +289,52 @@ def purepursuit_control_node(data):
 
     # These are set to zero only so that the template code builds.
 
-    base_link = Point32()
-    nearest_pose = Point32()
-    nearest_goal = Point32()
-    base_link.x = odom_x
-    base_link.y = odom_y
-    nearest_pose.x = pose_x
-    nearest_pose.y = pose_y
-    nearest_goal.x = target_x
-    nearest_goal.y = target_y
-    control_polygon.header.frame_id = frame_id
-    control_polygon.polygon.points = [nearest_pose, base_link, nearest_goal]
-    control_polygon.header.seq = wp_seq
-    control_polygon.header.stamp = rospy.Time.now()
-    wp_seq = wp_seq + 1
-    polygon_pub.publish(control_polygon)
+    # base_link = Point32()
+    # nearest_pose = Point32()
+    # nearest_goal = Point32()
+    # base_link.x = odom_x
+    # base_link.y = odom_y
+    # nearest_pose.x = pose_x
+    # nearest_pose.y = pose_y
+    # nearest_goal.x = target_x
+    # nearest_goal.y = target_y
+    # control_polygon.header.frame_id = frame_id
+    # control_polygon.polygon.points = [nearest_pose, base_link, nearest_goal]
+    # control_polygon.header.seq = wp_seq
+    # control_polygon.header.stamp = rospy.Time.now()
+    # wp_seq = wp_seq + 1
+    # polygon_pub.publish(control_polygon)
 
-    steering_marker = Marker()
-    steering_marker.header.frame_id = frame_id
-    steering_marker.header.stamp = rospy.Time.now()
-    steering_marker.ns = "steering_angle_marker"
-    steering_marker.type = Marker.ARROW
-    steering_marker.scale.x = 1.0
-    steering_marker.scale.y = 0.1
-    steering_marker.scale.z = 0.1
-    steering_marker.color.r = 0.0
-    steering_marker.color.g = 0.0
-    steering_marker.color.b = 1.0
-    steering_marker.color.a = 1.0
+    # steering_marker = Marker()
+    # steering_marker.header.frame_id = frame_id
+    # steering_marker.header.stamp = rospy.Time.now()
+    # steering_marker.ns = "steering_angle_marker"
+    # steering_marker.type = Marker.ARROW
+    # steering_marker.scale.x = 1.0
+    # steering_marker.scale.y = 0.1
+    # steering_marker.scale.z = 0.1
+    # steering_marker.color.r = 0.0
+    # steering_marker.color.g = 0.0
+    # steering_marker.color.b = 1.0
+    # steering_marker.color.a = 1.0
 
-    steering_marker.pose.position.x = odom_x
-    steering_marker.pose.position.y = odom_y
-    steering_marker.pose.position.z = 0.0
+    # steering_marker.pose.position.x = odom_x
+    # steering_marker.pose.position.y = odom_y
+    # steering_marker.pose.position.z = 0.0
 
-    steering_angle_rads = steering_angle * (3.14159 / 180.0)
-    yaw = heading + steering_angle_rads
-    quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
+    # steering_angle_rads = steering_angle * (3.14159 / 180.0)
+    # yaw = heading + steering_angle_rads
+    # quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
 
-    steering_marker.pose.orientation.x = data.pose.orientation.x
-    steering_marker.pose.orientation.y = data.pose.orientation.y
-    steering_marker.pose.orientation.z = quat[2]
-    steering_marker.pose.orientation.w = quat[3]
+    # steering_marker.pose.orientation.x = data.pose.orientation.x
+    # steering_marker.pose.orientation.y = data.pose.orientation.y
+    # steering_marker.pose.orientation.z = quat[2]
+    # steering_marker.pose.orientation.w = quat[3]
 
-    steering_marker.color.a = 1.0
-    steering_marker.color.g = 1.0
+    # steering_marker.color.a = 1.0
+    # steering_marker.color.g = 1.0
 
-    steering_marker_pub.publish(steering_marker)
+    # steering_marker_pub.publish(steering_marker)
 
     print(
         "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}, Obstacle Detected: {}".format(
@@ -427,7 +426,7 @@ def callback(data):
     processed_data = preprocess(data)
     extended_data = disparity_extension(processed_data, data.angle_increment)
     publish_disparity_data(extended_data, -45, 45, data.angle_increment)
-    print("middle length = ", extended_data[len(extended_data)//2])
+    print("middle length = ", extended_data[len(extended_data) // 2])
 
     # if there's something within 1m in any of the middle 3 indeces
     for datapoint in extended_data[
