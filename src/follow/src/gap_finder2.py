@@ -178,8 +178,8 @@ def transform_steering(steering_angle):
 
 
 def dynamic_speed(command_angle):
-    max_speed = 30
-    min_speed = 20
+    max_speed = 25
+    min_speed = 15
 
     error = 1 - (abs(command_angle) / 100)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
@@ -291,6 +291,4 @@ if __name__ == "__main__":
     print("Hokuyo LIDAR node started")
     rospy.init_node("gap_finder", anonymous=True)
     rospy.Subscriber("/car_4/scan", LaserScan, callback)
-    global raceline
-    raceline_pub.publish(raceline)
     rospy.spin()
