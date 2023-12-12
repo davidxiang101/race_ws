@@ -60,7 +60,7 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 
-max_speed = 40.0
+max_speed = 35.0
 min_speed = 30.0
 
 speed_factors = []
@@ -135,8 +135,8 @@ def preprocess(data, max_distance=5.0):
     center_index = num_points // 2
     angle_range = data.angle_max - data.angle_min
 
-    forward_angle_min = -math.pi / 2  # -90 degrees
-    forward_angle_max = math.pi / 2  # 90 degrees
+    forward_angle_min = -math.pi / 4  # -90 degrees
+    forward_angle_max = math.pi / 4  # 90 degrees
     start_index = int((forward_angle_min - data.angle_min) / angle_range * num_points)
     end_index = int((forward_angle_max - data.angle_min) / angle_range * num_points)
 
@@ -151,7 +151,7 @@ def preprocess(data, max_distance=5.0):
 
 
 def disparity_extension(
-    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.05
+    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.04
 ):
     lidar = processed_data
     new_lidar = copy.deepcopy(lidar)
@@ -182,7 +182,7 @@ def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
 
 
 def index_to_angle(index, angle_increment, num_points):
-    angle_min = -math.pi / 2
+    angle_min = -math.pi / 4
     angle = math.degrees(angle_min + (index * angle_increment))
     # print(angle)
     return angle
@@ -341,13 +341,13 @@ def purepursuit_control_node(data):
         if final_speed > 30:
             command.speed = final_speed * 0.6
         else:
-            command.speed = final_speed * 0.7
+            command.speed = final_speed * 0.6
 
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
 
         #command.speed = 0
-        command.speed = final_speed * 0.5   # slow down a ton
+        command.speed = final_speed * 0.4   # slow down a ton
         command.steering_angle = transform_steering(gap_angle) # find the gap and follow it
         # maybe publish steering angle to rviz here
 
@@ -466,8 +466,8 @@ def publish_disparity_data(
     num_points = len(extended_data)
 
     # Calculate start and end angles for the forward-facing scan
-    forward_angle_min = -math.pi / 2  # -90 degrees
-    forward_angle_max = math.pi / 2  # 90 degrees
+    forward_angle_min = -math.pi / 4  # -90 degrees
+    forward_angle_max = math.pi / 4  # 90 degrees
 
     # Calculate the starting index based on the minimum forward angle
     start_index = int((forward_angle_min - angle_min) / angle_increment)
@@ -506,7 +506,7 @@ def callback(data):
     global slow_down
     processed_data = preprocess(data)
     extended_data = disparity_extension(processed_data, data.angle_increment)
-    publish_disparity_data(extended_data, -90, 90, data.angle_increment)
+    publish_disparity_data(extended_data, -45, 45, data.angle_increment)
     print("middle length = ", extended_data[len(extended_data)//2])
 
     # if there's something within 1m in any of the middle 3 indeces
@@ -516,7 +516,7 @@ def callback(data):
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
             gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
             publish_steering_marker(gap_angle)
-        elif datapoint < 2:
+        elif datapoint < 1.5:
             slow_down = True
 
         else:
