@@ -13,7 +13,7 @@ class QualifyControl:
             "/gap_finder/command", AckermannDrive, self.gap_finder_callback
         )
         rospy.Subscriber(
-            "/pure_pursuit/command", AckermannDrive, self.pure_pursuit_callback
+            "/pure_pursuit/command", CustomDrive, self.pure_pursuit_callback
         )
 
         # Publisher to send final command to the car
