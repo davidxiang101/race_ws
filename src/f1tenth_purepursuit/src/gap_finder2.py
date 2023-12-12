@@ -21,44 +21,32 @@ command_pub = rospy.Publisher("/gap_finder/command", AckermannDrive, queue_size=
 disparity_pub = rospy.Publisher(
     "/car_4/disparity_extension", MarkerArray, queue_size=10
 )
-max_area_pub = rospy.Publisher("/car_4/max_area_marker", Marker, queue_size=10)
-laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
-raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
 
-
-plan = []
-path_resolution = []
-frame_id = "map"
-raceline = None
 pp_ang = False
 angle_increment = 0
 num_points = 0
 
 
-def angle_to_radians(angle):
-    return math.radians(angle)
-
-
-def radians_to_angle(radians):
-    return math.degrees(radians)
-
-
 def preprocess(data, max_distance=5.0):
-    num_points = len(data.ranges)
-    center_index = num_points // 2
-    angle_range = data.angle_max - data.angle_min
+    # Convert data.ranges to a NumPy array for efficient processing
+    scan_ranges = np.array(data.ranges)
 
+    # Calculate necessary indices for slicing
+    num_points = len(scan_ranges)
+    angle_range = data.angle_max - data.angle_min
     forward_angle_min = -math.pi / 4  # -90 degrees
     forward_angle_max = math.pi / 4  # 90 degrees
+
     start_index = int((forward_angle_min - data.angle_min) / angle_range * num_points)
-    end_index = int((forward_angle_max - data.angle_min) / angle_range * num_points)
+    end_index = int((forward_angle_max - data.angle_min) / angle_range * num_points) + 1
 
-    forward_scan = data.ranges[start_index : end_index + 1]
+    # Extract the relevant scan segment
+    forward_scan = scan_ranges[start_index:end_index]
 
-    processed_scan = [
-        min(max_distance, r) if not math.isnan(r) else max_distance
-        for r in forward_scan
-    ]
+    # Process the scan data
+    # Replace NaNs with max_distance and cap values at max_distance
+    processed_scan = np.nan_to_num(forward_scan, nan=max_distance)
+    processed_scan = np.minimum(processed_scan, max_distance)
 
     return processed_scan
 
@@ -66,16 +54,20 @@ def preprocess(data, max_distance=5.0):
 def disparity_extension(
     processed_data, angle_increment, car_width=0.20, clearance_threshold=0.06
 ):
-    lidar = processed_data
-    new_lidar = copy.deepcopy(lidar)
+    # Create an array to hold the extended data
+    new_lidar = lidar.copy()
+
+    # Vectorize the extension computation
+    indices = np.arange(len(lidar))
     for i, scan_dist in enumerate(lidar):
-        if scan_dist < clearance_threshold:
-            continue
-        k = int(
-            math.atan((car_width + clearance_threshold) / scan_dist) / angle_increment
-        )
-        for j in range(max(0, i - k), min(len(lidar), i + k + 1)):
-            new_lidar[j] = min(new_lidar[j], lidar[i])
+        if scan_dist >= clearance_threshold:
+            k = int(
+                math.atan((car_width + clearance_threshold) / scan_dist)
+                / angle_increment
+            )
+            start = max(0, i - k)
+            end = min(len(lidar), i + k + 1)
+            new_lidar[start:end] = np.minimum(new_lidar[start:end], lidar[i])
 
     return new_lidar
 
@@ -88,7 +80,7 @@ def find_gap(extended_data, inc, height_weight=1, width_weight=1):
 
     for i, height in enumerate(extended_data):
         if height > max_depth:
-            max_depth = height * (1 + (abs(pp_ang - i) / num_points))
+            max_depth = height * (1 + (1 - (abs(pp_ang - i) / num_points)))
             max_ind = i
 
     targ_ind = max_ind
@@ -215,10 +207,8 @@ def callback(data):
     command = AckermannDrive()
     command.steering_angle = transform_steering(gap_angle)
     command.speed = dynamic_speed(command.steering_angle)
-    threshold = 1.5
-    if (
-        extended_data[pp_ang] < threshold
-    ):
+    threshold = 1.3
+    if extended_data[pp_ang] < threshold:
         command.speed = command.speed * -1
     command_pub.publish(command)
 
