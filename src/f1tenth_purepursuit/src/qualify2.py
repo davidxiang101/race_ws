@@ -21,28 +21,16 @@ import copy
 plan = []
 path_resolution = []
 frame_id = "map"
-# car_name            = str(sys.argv[1])
-# trajectory_name     = str(sys.argv[2])
 raceline = None
 obstacle_detected = False
 slow_down = False
-disparity_pub = rospy.Publisher(
-    "/car_4/disparity_extension", MarkerArray, queue_size=1
-)
+
+
+disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
+disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
 )
-
-# # global variables with launch file
-trajectory_name = rospy.get_param("~arg1", "raceline_final_smooth8b.csv")
-
-car_name = rospy.get_param("~arg2", "car_4")
-
-# Subscribe to LIDAR
-laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=1)
-
-
-# Publishers for sending driving commands and visualizing the control polygon
 command_pub = rospy.Publisher(
     "/car_4/offboard/command".format(car_name), AckermannDrive, queue_size=1
 )
@@ -51,11 +39,9 @@ polygon_pub = rospy.Publisher(
     PolygonStamped,
     queue_size=1,
 )
-steering_marker_pub = rospy.Publisher(
-    "/car_4/steering_angle_marker", Marker, queue_size=1
-)
 raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
 goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
+
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
@@ -70,15 +56,11 @@ control_polygon = PolygonStamped()
 
 
 def construct_path():
-    # Function to construct the path from a CSV file
-    # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
         "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
             trajectory_name
         )
     )
-    # file_path = os.path.expanduser('~/map_ws/src/raceline.csv'.format(trajectory_name))
-
     global speed_factors
 
     with open(file_path) as csv_file:
@@ -115,18 +97,11 @@ def construct_path():
 
     global raceline
     raceline = raceline_path
-    # rate = rospy.Rate(10)
-    # while not rospy.is_shutdown():
-    # raceline_pub.publish(raceline_path)
-    #     rate.sleep()
 
     print(path_resolution)
 
 
-# Steering Range from -100.0 to 100.0
 STEERING_RANGE = 100.0
-
-# vehicle physical parameters
 WHEELBASE_LEN = 0.325
 
 
@@ -146,7 +121,6 @@ def preprocess(data, max_distance=5.0):
         min(max_distance, r) if not math.isnan(r) else max_distance
         for r in forward_scan
     ]
-
     return processed_scan
 
 
@@ -163,11 +137,10 @@ def disparity_extension(
         )
         for j in range(max(0, i - k), min(len(lidar), i + k + 1)):
             new_lidar[j] = min(new_lidar[j], lidar[i])
-
     return new_lidar
 
 
-def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
+def find_gap(extended_data, inc, height_weight=1, width_weight=1):
     max_depth = 0
     max_ind = 0
 
@@ -184,26 +157,24 @@ def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
 def index_to_angle(index, angle_increment, num_points):
     angle_min = -math.pi / 4
     angle = math.degrees(angle_min + (index * angle_increment))
-    # print(angle)
     return angle
 
 
-def transform_steering(steering_angle):
+def transform_steering(steering_angle, steering_offset=-2.4):
+    steering_angle += steering_offset
     if steering_angle > 30:
         steering_angle = 30
-        print("\n\n\nEXCEED TURNING\n\n\n")
+        print("\nEXCEED TURNING\n")
     if steering_angle < -30:
         steering_angle = -30
-        print("\n\n\nEXCEED TURNING\n\n\n")
+        print("\nEXCEED TURNING\n")
 
     command_angle = steering_angle * (10.0 / 3.0)
-    # print("command angle: ", command_angle)
     return command_angle
 
 
 def purepursuit_control_node(data):
     start_time = rospy.get_time()
-    # publish reference path for RVI
     global raceline
     global wp_seq
     global curr_polygon
@@ -217,31 +188,11 @@ def purepursuit_control_node(data):
     odom_x = data.pose.position.x
     odom_y = data.pose.position.y
 
-    # TODO 1: The reference path is stored in the 'plan' array.
-    # Your task is to find the base projection of the car on this reference path.
-    # The base projection is defined as the closest point on the reference path to the car's current position.
-    # Calculate the index and position of this base projection on the reference path.
-    # print(plan)
-
-    # Query the k-d tree for the nearest neighbor
-    # uncomment when ready
+    # kd tree for base pos
     odom_position = (data.pose.position.x, data.pose.position.y)
     base_proj_idx = kd_tree.query(odom_position)[1]
     base_proj_pos = plan[base_proj_idx][:2]  # x, y
     pose_x, pose_y = base_proj_pos
-
-    # base_proj_idx = 0
-    # base_proj_dist = sys.maxsize
-    # base_proj_pos = (0, 0)
-
-    # for idx in range(len(plan)):
-    #     x, y, z, w = plan[idx]
-    #     dist_to_point = math.sqrt(math.pow(odom_x - x, 2) + math.pow(odom_y - y, 2))
-    #     if base_proj_dist > dist_to_point:
-    #         base_proj_dist = dist_to_point
-    #         base_proj_pos = (x, y)  # only x, y
-    #         base_proj_idx = idx
-    # pose_x, pose_y = base_proj_pos
 
     # Calculate heading angle of the car (in radians)
     heading = tf.transformations.euler_from_quaternion(
@@ -253,24 +204,17 @@ def purepursuit_control_node(data):
         )
     )[2]
 
-    # print(base_proj_idx)
-    # TODO 2: You need to tune the value of the lookahead_distance
-    # lookahead_distance = 1.83
-
-    # dynamic lookahead distance (needs to be tuned and tested)
+    # dynamic lookahead dist
     BASE_DISTANCE = 1.2
     MAX_DISTANCE = 1.8
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
 
-    # TODO 3: Utilizing the base projection found in TODO 1, your next task is to identify the goal or target point for the car.
-    # This target point should be determined based on the path and the base projection you have already calculated.
-    # The target point is a specific point on the reference path that the car should aim towards - lookahead distance ahead of the base projection on the reference path.
-    # Calculate the position of this goal/target point along the path.
+    # get goal idx
 
     curr_lookahead_dist = 0
-    goal_idx = base_proj_idx
+    goal_idx = base_proj_idx + 5
 
     while (
         math.sqrt(
@@ -282,23 +226,16 @@ def purepursuit_control_node(data):
         if goal_idx >= len(plan):
             goal_idx = 0
 
-    # After the loop, make sure goal_idx is valid for 'plan'
-    goal_idx = goal_idx % len(path_resolution)
     goal_pos = plan[goal_idx]  # gives x, y, z, w
     target_x, target_y = goal_pos[:2]
-    # print(base_proj_idx, goal_idx)
 
-    # TODO 4: Implement the pure pursuit algorithm to compute the steering angle given the pose of the car, target point, and lookahead distance.
-    # Your code here
-
-    # change to reference frame of the car
+    # purepursuit algo
     translated_x = goal_pos[0] - odom_x
     translated_y = goal_pos[1] - odom_y
 
     rotated_x = translated_x * math.cos(-heading) - translated_y * math.sin(-heading)
     rotated_y = translated_x * math.sin(-heading) + translated_y * math.cos(-heading)
 
-    # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y
     x_t = rotated_x
     dist_to_goal = math.sqrt(x_t * x_t + y_t * y_t)
@@ -306,35 +243,17 @@ def purepursuit_control_node(data):
     steering_angle = math.degrees(
         math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal)
     )
-    # print("steering angle: ", steering_angle)
 
-    # TODO 5: Ensure that the calculated steering angle is within the STEERING_RANGE and assign it to command.steering_angle
-    # Your code here
+    command.steering_angle = transform_steering(steering_angle)
 
-    # -100 command correlates to 30 degrees right of the car
-    # 100 command correlates to 30 degrees left of the car
-    # 0 is straight (0 degrees)
-    if steering_angle > 30:
-        steering_angle = 30
-        print("\nEXCEED TURNING\n")
-    if steering_angle < -30:
-        steering_angle = -30
-        print("\nEXCEED TURNING\n")
-
-    command.steering_angle = steering_angle * (10.0 / 3.0)
-    # print("command angle: ", command.steering_angle)
-
-    # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
+    # Dynamic Velocity Scaling
 
     global max_speed
     global min_speed
 
-    # uncomment when ready
     current_speed_factor = speed_factors[base_proj_idx]
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
-    steering_offset = -8
-    final_speed = max(-100, dynamic_speed + steering_offset)
-    command.speed = final_speed
+    command.speed = dynamic_speed
 
     # if nearing obstacle
     if slow_down == True:
@@ -345,12 +264,12 @@ def purepursuit_control_node(data):
 
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
-
-        #command.speed = 0
-        command.speed = final_speed * 0.4   # slow down a ton
-        command.steering_angle = transform_steering(gap_angle) # find the gap and follow it
+        # command.speed = 0
+        command.speed = final_speed / 3  # slow down a ton
+        command.steering_angle = transform_steering(
+            gap_angle
+        )  # find the gap and follow it
         # maybe publish steering angle to rviz here
-
 
     # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
     # print("error: ", error)
@@ -510,11 +429,15 @@ def callback(data):
     print("middle length = ", extended_data[len(extended_data)//2])
 
     # if there's something within 1m in any of the middle 3 indeces
-    for datapoint in extended_data[len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1]:
+    for datapoint in extended_data[
+        len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
+    ]:
         if datapoint < 1.0:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
-            gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
+            gap_angle = index_to_angle(
+                best_gap_index, data.angle_increment, len(extended_data)
+            )
             publish_steering_marker(gap_angle)
         elif datapoint < 1.5:
             slow_down = True
@@ -525,7 +448,6 @@ def callback(data):
 
     # print("Obstacle detected: ", obstacle_detected)
     print("slow down?: ", slow_down)
-
 
 
 if __name__ == "__main__":

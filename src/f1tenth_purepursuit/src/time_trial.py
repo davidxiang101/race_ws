@@ -25,9 +25,7 @@ frame_id = "map"
 # trajectory_name     = str(sys.argv[2])
 raceline = None
 obstacle_detected = False
-disparity_pub = rospy.Publisher(
-    "/car_4/disparity_extension", MarkerArray, queue_size=1
-)
+disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
 )
@@ -301,10 +299,12 @@ def purepursuit_control_node(data):
     # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y
     x_t = rotated_x
+    steering_offset = -2.4
     dist_to_goal = math.sqrt(x_t * x_t + y_t * y_t)
     alpha = math.asin(y_t / dist_to_goal)
-    steering_angle = math.degrees(
-        math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal)
+    steering_angle = (
+        math.degrees(math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal))
+        + steering_offset
     )
     # print("steering angle: ", steering_angle)
 
@@ -322,7 +322,6 @@ def purepursuit_control_node(data):
         print("\nEXCEED TURNING\n")
 
     command.steering_angle = steering_angle * (10.0 / 3.0)
-    # print("command angle: ", command.steering_angle)
 
     # TODO 6: Implement Dynamic Velocity Scaling instead of a constant speed
 
@@ -332,12 +331,11 @@ def purepursuit_control_node(data):
     # uncomment when ready
     current_speed_factor = speed_factors[base_proj_idx]
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
-    steering_offset = -8
-    command.speed = max(-100, dynamic_speed + steering_offset)
+    command.speed = dynamic_speed
 
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
-        #command.steering_angle = transform_steering(gap_angle)
+        # command.steering_angle = transform_steering(gap_angle)
         command.speed = 0
 
     # error = 1 - (abs(command.steering_angle) / STEERING_RANGE)
@@ -495,12 +493,15 @@ def callback(data):
     extended_data = disparity_extension(processed_data, data.angle_increment)
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
 
-
-    for datapoint in extended_data[len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1]:
+    for datapoint in extended_data[
+        len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1
+    ]:
         if datapoint < 0.02:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
-            gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
+            gap_angle = index_to_angle(
+                best_gap_index, data.angle_increment, len(extended_data)
+            )
             publish_steering_marker(gap_angle)
 
         else:
