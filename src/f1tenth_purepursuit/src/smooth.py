@@ -130,10 +130,19 @@ def smooth_and_refine_raceline(
 
     # Create DataFrame for the smoothed raceline
     smoothed_raceline = pd.DataFrame(
-        {"x": x_high_res, "y": y_high_res, "speed_factor": speed_profile}
+        {
+            "x": x_high_res,
+            "y": y_high_res,
+            "z": [0.0]
+            * len(x_high_res),  # List of 0.0 with the same length as x_high_res
+            "w": [1.0]
+            * len(x_high_res),  # List of 1.0 with the same length as x_high_res
+            "speed_factor": speed_profile,
+        }
     )
 
     # Plotting
+
     plt.figure(figsize=(12, 6))
 
     # If a YAML file is provided, read and display the associated PGM map
