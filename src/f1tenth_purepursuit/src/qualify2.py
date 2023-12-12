@@ -25,8 +25,6 @@ raceline = None
 obstacle_detected = False
 slow_down = False
 
-car_name = 'car_4'
-
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 steering_marker_pub = rospy.Publisher(
