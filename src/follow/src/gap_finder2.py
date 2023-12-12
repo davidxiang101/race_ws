@@ -32,59 +32,6 @@ path_resolution = []
 frame_id = "map"
 raceline = None
 
- # ADD RACELINE
-# def construct_path():
-#     # Function to construct the path from a CSV file
-#     # TODO: Modify this path to match the folder where the csv file containing the path is located.
-#     file_path = os.path.expanduser(
-#         "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth7.csv".format(
-#             trajectory_name
-#         )
-#     )
-#     # file_path = os.path.expanduser('~/map_ws/src/raceline.csv'.format(trajectory_name))
-
-#     global speed_factors
-
-#     with open(file_path) as csv_file:
-#         csv_reader = csv.reader(csv_file, delimiter=",")
-#         for waypoint in csv_reader:
-#             plan.append(waypoint[:4])  # x, y, z, w
-#             speed_factors.append(float(waypoint[4]))  # Speed factor
-
-#     # Convert string coordinates to floats and calculate path resolution
-#     for index in range(0, len(plan)):
-#         for point in range(0, len(plan[index])):
-#             plan[index][point] = float(plan[index][point])
-
-#     for index in range(1, len(plan)):
-#         dx = plan[index][0] - plan[index - 1][0]
-#         dy = plan[index][1] - plan[index - 1][1]
-#         path_resolution.append(math.sqrt(dx * dx + dy * dy))
-
-#     raceline_path = Path()
-#     raceline_path.header.frame_id = "map"
-
-#     global kd_tree
-#     coordinates = [
-#         (point[0], point[1]) for point in plan
-#     ]  # Assuming x, y coordinates are the first two elements
-#     kd_tree = KDTree(coordinates)
-
-#     for index, point in enumerate(plan):
-#         waypoint = PoseStamped()
-#         waypoint.header.frame_id = "map"
-#         waypoint.pose.position.x = point[0]
-#         waypoint.pose.position.y = point[1]
-#         raceline_path.poses.append(waypoint)
-
-#     global raceline
-#     raceline = raceline_path
-#     # rate = rospy.Rate(10)
-#     # while not rospy.is_shutdown():
-#     # raceline_pub.publish(raceline_path)
-#     #     rate.sleep()
-
-#     print(path_resolution)
 
 
 def angle_to_radians(angle):
