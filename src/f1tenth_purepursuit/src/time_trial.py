@@ -61,8 +61,8 @@ goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 global wp_seq
 global curr_polygon
 
-max_speed = 67.0
-min_speed = 37.0
+max_speed = 64.0
+min_speed = 40.0
 
 speed_factors = []
 
@@ -74,7 +74,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8a.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
             trajectory_name
         )
     )
@@ -258,8 +258,8 @@ def purepursuit_control_node(data):
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
-    BASE_DISTANCE = 1.4
-    MAX_DISTANCE = 2.3
+    BASE_DISTANCE = 1.2
+    MAX_DISTANCE = 1.9
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )

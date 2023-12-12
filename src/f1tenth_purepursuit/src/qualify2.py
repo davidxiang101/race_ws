@@ -34,7 +34,7 @@ steering_marker_pub = rospy.Publisher(
 )
 
 # # global variables with launch file
-trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
+trajectory_name = rospy.get_param("~arg1", "raceline_final_smooth8b.csv")
 
 car_name = rospy.get_param("~arg2", "car_4")
 
@@ -73,7 +73,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8a.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
             trajectory_name
         )
     )
@@ -151,7 +151,7 @@ def preprocess(data, max_distance=5.0):
 
 
 def disparity_extension(
-    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.04
+    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.05
 ):
     lidar = processed_data
     new_lidar = copy.deepcopy(lidar)
@@ -338,13 +338,16 @@ def purepursuit_control_node(data):
 
     # if nearing obstacle
     if slow_down == True:
-        command.speed = final_speed * 0.6
+        if final_speed > 30:
+            command.speed = final_speed * 0.6
+        else:
+            command.speed = final_speed * 0.7
 
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
 
         #command.speed = 0
-        command.speed = final_speed * 0.3   # slow down a ton
+        command.speed = final_speed * 0.5   # slow down a ton
         command.steering_angle = transform_steering(gap_angle) # find the gap and follow it
         # maybe publish steering angle to rviz here
 
