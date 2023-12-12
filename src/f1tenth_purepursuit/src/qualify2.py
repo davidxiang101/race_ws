@@ -25,6 +25,7 @@ frame_id = "map"
 # trajectory_name     = str(sys.argv[2])
 raceline = None
 obstacle_detected = False
+slow_down = False
 disparity_pub = rospy.Publisher(
     "/car_4/disparity_extension", MarkerArray, queue_size=1
 )
@@ -208,6 +209,7 @@ def purepursuit_control_node(data):
     global curr_polygon
     global obstacle_detected
     global gap_angle
+    global slow_down
 
     raceline_pub.publish(raceline)
     command = AckermannDrive()
@@ -334,11 +336,15 @@ def purepursuit_control_node(data):
     final_speed = max(-100, dynamic_speed + steering_offset)
     command.speed = final_speed
 
+    # if nearing obstacle
+    if slow_down == True:
+        command.speed = final_speed * 0.6
+
     # if obstacle detected within 0.5 m directly ahead stop the car
     if obstacle_detected == True:
 
         #command.speed = 0
-        command.speed = final_speed / 3    # slow down a ton
+        command.speed = final_speed * 0.3   # slow down a ton
         command.steering_angle = transform_steering(gap_angle) # find the gap and follow it
         # maybe publish steering angle to rviz here
 
@@ -494,22 +500,29 @@ def publish_disparity_data(
 def callback(data):
     global obstacle_detected
     global gap_angle
+    global slow_down
     processed_data = preprocess(data)
     extended_data = disparity_extension(processed_data, data.angle_increment)
     publish_disparity_data(extended_data, -90, 90, data.angle_increment)
     print("middle length = ", extended_data[len(extended_data)//2])
 
+    # if there's something within 1m in any of the middle 3 indeces
     for datapoint in extended_data[len(extended_data) // 2 - 1 : len(extended_data) // 2 + 1]:
-        if datapoint < 1:
+        if datapoint < 1.0:
             obstacle_detected = True
             best_gap_index, max_depth = find_gap(extended_data, data.angle_increment)
             gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
             publish_steering_marker(gap_angle)
+        elif datapoint < 2:
+            slow_down = True
 
         else:
             obstacle_detected = False
+            slow_down = False
 
-    print("Obstacle detected: ", obstacle_detected)
+    # print("Obstacle detected: ", obstacle_detected)
+    print("slow down?: ", slow_down)
+
 
 
 if __name__ == "__main__":
