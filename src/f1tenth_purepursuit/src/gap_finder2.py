@@ -210,13 +210,14 @@ def callback(data):
     command = AckermannDrive()
     command.steering_angle = transform_steering(gap_angle)
     command.speed = dynamic_speed(command.steering_angle)
-    threshold = 1.3
-    if extended_data[pp_ang] < threshold:
+    threshold = 1.2
+    if extended_data[pp_ang] < threshold or extended_data[len(extended_data) // 2] < (threshold - 0.3):
         command.speed = command.speed * -1
     command_pub.publish(command)
 
     print(gap_angle)
     publish_steering_marker(gap_angle)
+
 
 
 def angle_to_index(steering_angle, angle_increment, num_points):
