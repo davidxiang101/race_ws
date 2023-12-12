@@ -215,11 +215,6 @@ def callback(data):
     publish_steering_marker(gap_angle)
 
 
-def reverse_transform_steering(command_angle):
-    steering_angle = command_angle / (10.0 / 3.0)
-    return steering_angle
-
-
 def angle_to_index(steering_angle, angle_increment, num_points):
     angle_min = -math.pi / 4
     angle_rad = math.radians(steering_angle)
@@ -233,11 +228,11 @@ def pp_callback(data):
     global num_points
 
     command_angle = data.steering_angle
+    print(command_angle)
     ang = angle_increment
     num = num_points
 
-    steering_angle = reverse_transform_steering(command_angle)
-    index = angle_to_index(steering_angle, ang, num)
+    index = angle_to_index(command_angle, ang, num)
     pp_ang = index
 
 
@@ -245,6 +240,6 @@ if __name__ == "__main__":
     print("Hokuyo LIDAR node started")
     rospy.init_node("gap_finder", anonymous=True)
     rospy.Subscriber("/car_4/scan", LaserScan, callback)
-    rospy.Subscriber("/pure_pursuit/command", AckermannDrive, pp_callback)
+    rospy.Subscriber("/pure_pursuit/angle", AckermannDrive, pp_callback)
     print("gap finder started")
     rospy.spin()
