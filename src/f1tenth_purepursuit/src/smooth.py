@@ -60,10 +60,26 @@ def calculate_curvature(x, y):
 
 
 def speed_from_curvature(curvature, min_speed, max_speed):
-    # Assuming higher curvature demands lower speed
-    # This function maps curvature values to speed, inversely proportional
-    normalized_curvature = curvature / np.max(curvature)  # Normalizing
-    return min_speed + (max_speed - min_speed) * (1 - normalized_curvature**2)
+    """
+    Maps curvature values to speed, inversely proportional.
+    Ensures that the speed is normalized between 0 and 1.
+    """
+    # Normalizing the curvature to be within the range [0, 1]
+    normalized_curvature = curvature / np.max(curvature)
+
+    # Inverting the curvature to make high curvature correspond to low speed
+    inverse_curvature = 1 - normalized_curvature
+
+    # Scaling the inverse curvature to be within the range of min_speed and max_speed
+    speed_profile = min_speed + (max_speed - min_speed) * (inverse_curvature)
+
+    scaled_speed_profile = np.where(
+        speed_profile > 0.7,
+        np.minimum(0.7 + 3 * (speed_profile - 0.7), 1.0),  # Cap at 1.0
+        speed_profile,
+    )
+
+    return scaled_speed_profile
 
 
 def calculate_future_curvature(curvature, lookahead_distance):
@@ -192,10 +208,10 @@ def smooth_and_refine_raceline(
 # Usage
 smooth_and_refine_raceline(
     "../path/raceline8.csv",
-    "../path/raceline_final_smooth8c.csv",
+    "../path/raceline_final_smooth8d.csv",
     sigma=7,
     num_points=1000,
-    lookahead_range=140,
-    weight_decay=0.99,
+    lookahead_range=100,
+    weight_decay=0.98,
     map_yaml_file=None,
 )
