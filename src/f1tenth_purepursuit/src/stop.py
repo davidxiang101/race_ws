@@ -10,8 +10,9 @@ pure_pursuit_data = None
 slowdown = False  # Logic to decide which algorithm to use
 
 
-def gap_finder_callback(data):
-    if data.steering_angle == -1:
+def slowdown_callback(data):
+    global slowdown
+    if data.steering_angle < 0:
         slowdown = True
     else:
         slowdown = False
@@ -36,8 +37,9 @@ def decide_and_publish():
     elif pure_pursuit_data is not None:
         print("pure pursuit")
         command_pub.publish(pure_pursuit_data)
+        slowdown = False
 
-    print("neither")
+    # print("neither")
 
 
 
@@ -47,7 +49,7 @@ if __name__ == "__main__":
 
     # Subscribers to listen to the gap finder and pure pursuit nodes
     rospy.Subscriber(
-        "/gap_finder/command", AckermannDrive, gap_finder_callback
+        "/slowdown/command", AckermannDrive, slowdown_callback
     )
     rospy.Subscriber(
         "/pure_pursuit/command", AckermannDrive, pure_pursuit_callback

@@ -17,7 +17,7 @@ import heapq
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker2", Marker, queue_size=1
 )
-command_pub = rospy.Publisher("/gap_finder/command", AckermannDrive, queue_size=1)
+command_pub = rospy.Publisher("/slowdown/command", AckermannDrive, queue_size=1)
 disparity_pub = rospy.Publisher(
     "/car_4/disparity_extension", MarkerArray, queue_size=10
 )

@@ -28,7 +28,7 @@ steering_marker_pub = rospy.Publisher(
 )
 # Publishers for sending driving commands and visualizing the control polygon
 command_pub = rospy.Publisher(
-    "/car_4/offboard/command", AckermannDrive, queue_size=2
+    "/pure_pursuit/command", AckermannDrive, queue_size=2
 )
 polygon_pub = rospy.Publisher(
     "/car_4/purepursuit_control/visualize",
@@ -44,8 +44,8 @@ angle_pub = rospy.Publisher("/pure_pursuit/angle", AckermannDrive, queue_size=10
 global wp_seq
 global curr_polygon
 
-max_speed = 50.0
-min_speed = 10.0
+max_speed = 68.0
+min_speed = 2.0
 
 speed_factors = []
 
