@@ -1,8 +1,12 @@
 <launch>
 
-  <node pkg="f1tenth_purepursuit" type="time_trial2.py" name="tt" output="screen">
+  <node pkg="f1tenth_purepursuit" type="pursuit.py" name="pursuit" output="screen">
         <param name="arg1" type="str" value="raceline_final"/>
         <param name="arg2" type="str" value="car_4"/>
+    </node>
+    <node pkg="f1tenth_purepursuit" type="slowdown.py" name="slowdown" output="screen">
+    </node>
+    <node pkg="f1tenth_purepursuit" type="stop.py" name="stop" output="screen">
     </node>
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find f1tenth_purepursuit)/src/cartographer_ros/cartographer_ros/configuration_files/map_demo.rviz" ></node>
 

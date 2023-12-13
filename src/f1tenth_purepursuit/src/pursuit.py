@@ -37,14 +37,15 @@ polygon_pub = rospy.Publisher(
 )
 raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
 goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
+angle_pub = rospy.Publisher("/pure_pursuit/angle", AckermannDrive, queue_size=10)
 
 
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
 
-max_speed = 68.0
-min_speed = 2.0
+max_speed = 50.0
+min_speed = 10.0
 
 speed_factors = []
 
@@ -102,26 +103,6 @@ STEERING_RANGE = 100.0
 
 # vehicle physical parameters
 WHEELBASE_LEN = 0.325
-
-
-def index_to_angle(index, angle_increment, num_points):
-    angle_min = -math.pi / 2
-    angle = math.degrees(angle_min + (index * angle_increment))
-    # print(angle)
-    return angle
-
-
-def transform_steering(steering_angle):
-    if steering_angle > 30:
-        steering_angle = 30
-        print("\n\n\nEXCEED TURNING\n\n\n")
-    if steering_angle < -30:
-        steering_angle = -30
-        print("\n\n\nEXCEED TURNING\n\n\n")
-
-    command_angle = steering_angle * (10.0 / 3.0)
-    # print("command angle: ", command_angle)
-    return command_angle
 
 
 def purepursuit_control_node(data):
@@ -206,6 +187,14 @@ def purepursuit_control_node(data):
     rotated_x = translated_x * math.cos(-heading) - translated_y * math.sin(-heading)
     rotated_y = translated_x * math.sin(-heading) + translated_y * math.cos(-heading)
 
+    target_angle = math.atan2(rotated_y, rotated_x)
+
+    # Create and publish the angle message
+    angle_msg = AckermannDrive()
+    angle_msg.steering_angle = math.degrees(target_angle)
+    global angle_pub
+    angle_pub.publish(angle_msg)
+
     # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y
     x_t = rotated_x
@@ -246,14 +235,14 @@ def purepursuit_control_node(data):
     publish_steering_marker(command.steering_angle)
     end_time = rospy.get_time()
 
-    print(
-        "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}".format(
-            (end_time - start_time) * 1000,
-            steering_angle,
-            command.steering_angle,
-            command.speed
-        )
-    )
+    # print(
+    #     "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}".format(
+    #         (end_time - start_time) * 1000,
+    #         steering_angle,
+    #         command.steering_angle,
+    #         command.speed
+    #     )
+    # )
 
 
 def publish_steering_marker(steering_angle, frame_id="car_4_laser"):

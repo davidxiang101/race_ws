@@ -37,6 +37,8 @@ polygon_pub = rospy.Publisher(
     queue_size=1,
 )
 raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
+    # raceline_pub.publish(raceline)
+
 goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
 
 
@@ -52,8 +54,8 @@ trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
 car_name = rospy.get_param("~arg2", "car_4")
 global wp_seq
 global curr_polygon
-max_speed = 7.0
-min_speed = 5.0
+max_speed = 20.0
+min_speed = 10.0
 
 speed_factors = []
 
@@ -124,7 +126,6 @@ def purepursuit_control_node(data):
     global obstacle_detected
     global gap_angle
 
-    raceline_pub.publish(raceline)
     command = AckermannDrive()
 
     odom_x = data.pose.position.x
@@ -286,7 +287,7 @@ def purepursuit_control_node(data):
     control_polygon.header.seq = wp_seq
     control_polygon.header.stamp = rospy.Time.now()
     wp_seq = wp_seq + 1
-    polygon_pub.publish(control_polygon)
+    #polygon_pub.publish(control_polygon)
 
     steering_marker = Marker()
     steering_marker.header.frame_id = frame_id
@@ -520,7 +521,7 @@ def callback(data):
     if extended_data[pp_ang] < threshold or extended_data[len(extended_data) // 2] < (threshold - 0.3): #mayb + L&R of mid
         #command.speed = command.speed * -1
         # slow it down
-        command.speed = dynamic_speed(command.steering_angle) * 0.4
+        command.speed = dynamic_speed(command.steering_angle) * 0.3
     else:
         command.speed = dynamic_speed(command.steering_angle)
     command_pub.publish(command)

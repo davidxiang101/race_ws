@@ -53,8 +53,8 @@ angle_pub = rospy.Publisher("/pure_pursuit/angle", AckermannDrive, queue_size=10
 global wp_seq
 global curr_polygon
 
-max_speed = 40.0
-min_speed = 25.0
+max_speed = 50.0
+min_speed = 15.0
 
 speed_factors = []
 
@@ -66,7 +66,7 @@ def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
     file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8b.csv".format(
+        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8e.csv".format(
             trajectory_name
         )
     )
@@ -132,7 +132,7 @@ def purepursuit_control_node(data):
     global obstacle_detected
     global gap_angle
 
-    raceline_pub.publish(raceline)
+    #raceline_pub.publish(raceline)
     command = AckermannDrive()
 
     odom_x = data.pose.position.x

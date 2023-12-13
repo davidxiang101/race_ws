@@ -164,37 +164,6 @@ def publish_disparity_data(
     disparity_pub.publish(marker_array)
 
 
-def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
-    steering_marker = Marker()
-    steering_marker.header.frame_id = frame_id
-    steering_marker.header.stamp = rospy.Time.now()
-    steering_marker.ns = "steering_angle_marker"
-    steering_marker.id = 0
-    steering_marker.type = Marker.ARROW
-    steering_marker.action = Marker.ADD
-    steering_marker.scale.x = 1.0
-    steering_marker.scale.y = 0.1
-    steering_marker.scale.z = 0.1
-    steering_marker.color.r = 1.0
-    steering_marker.color.g = 0.0
-    steering_marker.color.b = 1.0
-    steering_marker.color.a = 1.0
-
-    steering_marker.pose.position.x = 0.0
-    steering_marker.pose.position.y = 0.0
-    steering_marker.pose.position.z = 0.0
-
-    steering_angle_rads = math.radians(steering_angle)
-    quat = tf.transformations.quaternion_from_euler(0, 0, steering_angle_rads)
-
-    steering_marker.pose.orientation.x = quat[0]
-    steering_marker.pose.orientation.y = quat[1]
-    steering_marker.pose.orientation.z = quat[2]
-    steering_marker.pose.orientation.w = quat[3]
-
-    steering_marker_pub.publish(steering_marker)
-
-
 def callback(data):
 
     processed_data = preprocess(data)
@@ -203,20 +172,19 @@ def callback(data):
 
     publish_disparity_data(extended_data, -45, 45, data.angle_increment)
 
-    best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
+    #best_gap_index, max_area = find_gap(extended_data, data.angle_increment)
 
-    gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
+    #gap_angle = index_to_angle(best_gap_index, data.angle_increment, len(extended_data))
 
     command = AckermannDrive()
-    command.steering_angle = transform_steering(gap_angle)
-    command.speed = dynamic_speed(command.steering_angle)
+    command.steering_angle = 1
     threshold = 1.2
     if extended_data[pp_ang] < threshold or extended_data[len(extended_data) // 2] < (threshold - 0.3):
-        command.speed = command.speed * -1
+        command.steering_angle = -1
+        command.speed = 0
+    else:
+        command.speed = command.speed
     command_pub.publish(command)
-
-    print(gap_angle)
-    publish_steering_marker(gap_angle)
 
 
 
@@ -245,7 +213,7 @@ def pp_callback(data):
 
 if __name__ == "__main__":
     print("Hokuyo LIDAR node started")
-    rospy.init_node("gap_finder", anonymous=True)
+    rospy.init_node("slowdown", anonymous=True)
     rospy.Subscriber("/car_4/scan", LaserScan, callback)
     rospy.Subscriber("/pure_pursuit/angle", AckermannDrive, pp_callback)
     print("gap finder started")
