@@ -21,46 +21,30 @@ import copy
 plan = []
 path_resolution = []
 frame_id = "map"
-# car_name            = str(sys.argv[1])
-# trajectory_name     = str(sys.argv[2])
+
 raceline = None
-obstacle_detected = False
-disparity_pub = rospy.Publisher("/car_4/disparity_extension", MarkerArray, queue_size=1)
 steering_marker_pub = rospy.Publisher(
     "/car_4/steering_angle_marker", Marker, queue_size=1
 )
-
-# # global variables with launch file
-trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
-print("traj: ", trajectory_name)
-
-car_name = rospy.get_param("~arg2", "car_4")
-print("car name: ", car_name)
-
-# Subscribe to LIDAR
-# laser_pub = rospy.Publisher("/car_4/scan", LaserScan, queue_size=10)
-
-
 # Publishers for sending driving commands and visualizing the control polygon
 command_pub = rospy.Publisher(
-    "/car_4/offboard/command".format(car_name), AckermannDrive, queue_size=1
+    "/car_4/offboard/command", AckermannDrive, queue_size=2
 )
 polygon_pub = rospy.Publisher(
-    "/car_4/purepursuit_control/visualize".format(car_name),
+    "/car_4/purepursuit_control/visualize",
     PolygonStamped,
     queue_size=1,
 )
-steering_marker_pub = rospy.Publisher(
-    "/car_4/steering_angle_marker", Marker, queue_size=1
-)
 raceline_pub = rospy.Publisher("/raceline", Path, queue_size=1)
 goal_pub = rospy.Publisher("/goal", Marker, queue_size=1)
+
+
 # Global variables for waypoint sequence and current polygon
 global wp_seq
 global curr_polygon
 
-max_speed = 55.0
-min_speed = 22.0
+max_speed = 65.0
+min_speed = -5.0
 
 speed_factors = []
 
@@ -71,12 +55,7 @@ control_polygon = PolygonStamped()
 def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
-    file_path = os.path.expanduser(
-        "~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8c.csv".format(
-            trajectory_name
-        )
-    )
-    # file_path = os.path.expanduser('~/map_ws/src/raceline.csv'.format(trajectory_name))
+    file_path = os.path.expanduser("~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8c.csv")
 
     global speed_factors
 
@@ -114,10 +93,6 @@ def construct_path():
 
     global raceline
     raceline = raceline_path
-    # rate = rospy.Rate(10)
-    # while not rospy.is_shutdown():
-    # raceline_pub.publish(raceline_path)
-    #     rate.sleep()
 
     print(path_resolution)
 
@@ -127,57 +102,6 @@ STEERING_RANGE = 100.0
 
 # vehicle physical parameters
 WHEELBASE_LEN = 0.325
-
-
-def preprocess(data, max_distance=5.0):
-    num_points = len(data.ranges)
-    center_index = num_points // 2
-    angle_range = data.angle_max - data.angle_min
-
-    forward_angle_min = -math.pi / 2  # -90 degrees
-    forward_angle_max = math.pi / 2  # 90 degrees
-    start_index = int((forward_angle_min - data.angle_min) / angle_range * num_points)
-    end_index = int((forward_angle_max - data.angle_min) / angle_range * num_points)
-
-    forward_scan = data.ranges[start_index : end_index + 1]
-
-    processed_scan = [
-        min(max_distance, r) if not math.isnan(r) else max_distance
-        for r in forward_scan
-    ]
-
-    return processed_scan
-
-
-def disparity_extension(
-    processed_data, angle_increment, car_width=0.20, clearance_threshold=0.12
-):
-    lidar = processed_data
-    new_lidar = copy.deepcopy(lidar)
-    for i, scan_dist in enumerate(lidar):
-        if scan_dist < clearance_threshold:
-            continue
-        k = int(
-            math.atan((car_width + clearance_threshold) / scan_dist) / angle_increment
-        )
-        for j in range(max(0, i - k), min(len(lidar), i + k + 1)):
-            new_lidar[j] = min(new_lidar[j], lidar[i])
-
-    return new_lidar
-
-
-def find_gap(extended_data, inc, height_weight=100000000, width_weight=1):
-    max_depth = 0
-    max_ind = 0
-
-    for i, height in enumerate(extended_data):
-        if height > max_depth:
-            max_depth = height
-            max_ind = i
-
-    targ_ind = max_ind
-
-    return targ_ind, max_depth
 
 
 def index_to_angle(index, angle_increment, num_points):
@@ -206,20 +130,14 @@ def purepursuit_control_node(data):
     global raceline
     global wp_seq
     global curr_polygon
-    global obstacle_detected
     global gap_angle
 
-    raceline_pub.publish(raceline)
     command = AckermannDrive()
 
     odom_x = data.pose.position.x
     odom_y = data.pose.position.y
 
     # TODO 1: The reference path is stored in the 'plan' array.
-    # Your task is to find the base projection of the car on this reference path.
-    # The base projection is defined as the closest point on the reference path to the car's current position.
-    # Calculate the index and position of this base projection on the reference path.
-    # print(plan)
 
     # Query the k-d tree for the nearest neighbor
     # uncomment when ready
@@ -227,19 +145,6 @@ def purepursuit_control_node(data):
     base_proj_idx = kd_tree.query(odom_position)[1]
     base_proj_pos = plan[base_proj_idx][:2]  # x, y
     pose_x, pose_y = base_proj_pos
-
-    # base_proj_idx = 0
-    # base_proj_dist = sys.maxsize
-    # base_proj_pos = (0, 0)
-
-    # for idx in range(len(plan)):
-    #     x, y, z, w = plan[idx]
-    #     dist_to_point = math.sqrt(math.pow(odom_x - x, 2) + math.pow(odom_y - y, 2))
-    #     if base_proj_dist > dist_to_point:
-    #         base_proj_dist = dist_to_point
-    #         base_proj_pos = (x, y)  # only x, y
-    #         base_proj_idx = idx
-    # pose_x, pose_y = base_proj_pos
 
     # Calculate heading angle of the car (in radians)
     heading = tf.transformations.euler_from_quaternion(
@@ -251,13 +156,15 @@ def purepursuit_control_node(data):
         )
     )[2]
 
+    
+
     # print(base_proj_idx)
     # TODO 2: You need to tune the value of the lookahead_distance
     # lookahead_distance = 1.83
 
     # dynamic lookahead distance (needs to be tuned and tested)
     BASE_DISTANCE = 0.8
-    MAX_DISTANCE = 2.2
+    MAX_DISTANCE = 2.1
     lookahead_distance = BASE_DISTANCE + (
         (speed_factors[base_proj_idx]) * (MAX_DISTANCE - BASE_DISTANCE)
     )
@@ -286,6 +193,8 @@ def purepursuit_control_node(data):
     target_x, target_y = goal_pos[:2]
     # print(base_proj_idx, goal_idx)
 
+    
+
     # TODO 4: Implement the pure pursuit algorithm to compute the steering angle given the pose of the car, target point, and lookahead distance.
     # Your code here
 
@@ -306,14 +215,10 @@ def purepursuit_control_node(data):
         math.degrees(math.atan(2 * WHEELBASE_LEN * math.sin(alpha) / dist_to_goal))
         + steering_offset
     )
-    # print("steering angle: ", steering_angle)
 
     # TODO 5: Ensure that the calculated steering angle is within the STEERING_RANGE and assign it to command.steering_angle
     # Your code here
 
-    # -100 command correlates to 30 degrees right of the car
-    # 100 command correlates to 30 degrees left of the car
-    # 0 is straight (0 degrees)
     if steering_angle > 30:
         steering_angle = 30
         print("\nEXCEED TURNING\n")
@@ -333,70 +238,19 @@ def purepursuit_control_node(data):
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
     command.speed = dynamic_speed
 
-    # if obstacle detected within 0.5 m directly ahead stop the car
-    if obstacle_detected == True:
-        # command.steering_angle = transform_steering(gap_angle)
-        command.speed = 0
-
-
     command_pub.publish(command)
 
     # Visualization code
 
-    base_link = Point32()
-    nearest_pose = Point32()
-    nearest_goal = Point32()
-    base_link.x = odom_x
-    base_link.y = odom_y
-    nearest_pose.x = pose_x
-    nearest_pose.y = pose_y
-    nearest_goal.x = target_x
-    nearest_goal.y = target_y
-    control_polygon.header.frame_id = frame_id
-    control_polygon.polygon.points = [nearest_pose, base_link, nearest_goal]
-    control_polygon.header.seq = wp_seq
-    control_polygon.header.stamp = rospy.Time.now()
-    wp_seq = wp_seq + 1
-    polygon_pub.publish(control_polygon)
-
-    steering_marker = Marker()
-    steering_marker.header.frame_id = frame_id
-    steering_marker.header.stamp = rospy.Time.now()
-    steering_marker.ns = "steering_angle_marker"
-    steering_marker.type = Marker.ARROW
-    steering_marker.scale.x = 1.0
-    steering_marker.scale.y = 0.1
-    steering_marker.scale.z = 0.1
-    steering_marker.color.r = 0.0
-    steering_marker.color.g = 0.0
-    steering_marker.color.b = 1.0
-    steering_marker.color.a = 1.0
-
-    steering_marker.pose.position.x = odom_x
-    steering_marker.pose.position.y = odom_y
-    steering_marker.pose.position.z = 0.0
-
-    steering_angle_rads = steering_angle * (3.14159 / 180.0)
-    yaw = heading + steering_angle_rads
-    quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
-
-    steering_marker.pose.orientation.x = data.pose.orientation.x
-    steering_marker.pose.orientation.y = data.pose.orientation.y
-    steering_marker.pose.orientation.z = quat[2]
-    steering_marker.pose.orientation.w = quat[3]
-
-    steering_marker.color.a = 1.0
-    steering_marker.color.g = 1.0
-
-    steering_marker_pub.publish(steering_marker)
+    publish_steering_marker(command.steering_angle)
+    end_time = rospy.get_time()
 
     print(
-        "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}, Obstacle Detected: {}".format(
-            (rospy.get_time() - start_time) * 1000,
+        "Elapsed: {:.2f} ms, Steering Angle: {:.2f}, Command Angle: {:.2f}, Speed: {:.2f}".format(
+            (end_time - start_time) * 1000,
             steering_angle,
             command.steering_angle,
-            command.speed,
-            obstacle_detected,
+            command.speed
         )
     )
 
@@ -432,46 +286,6 @@ def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
     steering_marker_pub.publish(steering_marker)
 
 
-def publish_disparity_data(
-    extended_data, angle_min, angle_max, angle_increment, frame_id="car_4_laser"
-):
-    marker_array = MarkerArray()
-    num_points = len(extended_data)
-
-    # Calculate start and end angles for the forward-facing scan
-    forward_angle_min = -math.pi / 2  # -90 degrees
-    forward_angle_max = math.pi / 2  # 90 degrees
-
-    # Calculate the starting index based on the minimum forward angle
-    start_index = int((forward_angle_min - angle_min) / angle_increment)
-    end_index = start_index + num_points
-
-    for i in range(num_points):
-        angle = angle_min + (start_index + i) * angle_increment
-        distance = extended_data[i]
-
-        marker = Marker()
-        marker.header.frame_id = frame_id
-        marker.header.stamp = rospy.Time.now()
-        marker.id = i
-        marker.type = Marker.SPHERE
-        marker.action = Marker.ADD
-        marker.pose.position.x = distance * math.cos(angle)
-        marker.pose.position.y = distance * math.sin(angle)
-        marker.pose.position.z = 0
-        marker.scale.x = 0.05  # Small sphere size
-        marker.scale.y = 0.1
-        marker.scale.z = 0.1
-        marker.color.a = 1.0  # Alpha must be non-zero
-        marker.color.r = 0.0
-        marker.color.g = 0.3
-        marker.color.b = 1.0
-
-        marker_array.markers.append(marker)
-
-    disparity_pub.publish(marker_array)
-
-
 
 if __name__ == "__main__":
     try:
@@ -481,7 +295,7 @@ if __name__ == "__main__":
             construct_path()
 
         rospy.Subscriber(
-            "/car_4/particle_filter/viz/inferred_pose".format(car_name),
+            "/car_4/particle_filter/viz/inferred_pose",
             PoseStamped,
             purepursuit_control_node,
         )

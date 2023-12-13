@@ -112,14 +112,14 @@ def transform_steering(steering_angle):
 
 
 def dynamic_speed(command_angle):
-    max_speed = 17
-    min_speed = 12
+    max_speed = 30
+    min_speed = 20
 
     error = 1 - (abs(command_angle) / 100)
     dynamic_speed = (error) * (max_speed - min_speed) + min_speed
     dynamic_speed = min(max_speed, dynamic_speed)
     dynamic_speed = max(min_speed, dynamic_speed)
-    # print("dynamic speed: ", dynamic_speed)
+    print("dynamic speed: ", dynamic_speed)
 
     return dynamic_speed
 
