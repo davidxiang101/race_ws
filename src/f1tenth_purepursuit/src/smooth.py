@@ -208,10 +208,10 @@ def smooth_and_refine_raceline(
 # Usage
 smooth_and_refine_raceline(
     "../path/raceline8.csv",
-    "../path/raceline_final_smooth8e.csv",
-    sigma=8,
+    "../path/raceline_final_smooth8f.csv",
+    sigma=10,
     num_points=1000,
     lookahead_range=120,
-    weight_decay=0.98,
+    weight_decay=0.985,
     map_yaml_file=None,
 )
