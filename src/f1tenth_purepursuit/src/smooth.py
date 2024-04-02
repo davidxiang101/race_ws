@@ -207,8 +207,8 @@ def smooth_and_refine_raceline(
 
 # Usage
 smooth_and_refine_raceline(
-    "../path/test_demoline2.csv",
-    "../path/test_demoline2_smooth.csv",
+    "../path/test_demoline8.csv",
+    "../path/test_demoline8_smooth.csv",
     sigma=5,
     num_points=1000,
     lookahead_range=60,
