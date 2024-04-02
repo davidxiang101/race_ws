@@ -50,7 +50,7 @@ path_resolution = []
 frame_id = "map"
 raceline = None
 obstacle_detected = False
-trajectory_name = rospy.get_param("~arg1", "raceline_final.csv")
+trajectory_name = rospy.get_param("~arg1", "test_demoline2.csv")
 car_name = rospy.get_param("~arg2", "car_4")
 global wp_seq
 global curr_polygon

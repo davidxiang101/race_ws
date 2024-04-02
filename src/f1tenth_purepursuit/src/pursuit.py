@@ -44,7 +44,7 @@ angle_pub = rospy.Publisher("/pure_pursuit/angle", AckermannDrive, queue_size=10
 global wp_seq
 global curr_polygon
 
-max_speed = 68.0
+max_speed = 45.0
 min_speed = 2.0
 
 speed_factors = []
@@ -56,7 +56,7 @@ control_polygon = PolygonStamped()
 def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
-    file_path = os.path.expanduser("~/catkin_ws/src/f1tenth_purepursuit/path/raceline_final_smooth8e.csv")
+    file_path = os.path.expanduser("~/catkin_ws/src/f1tenth_purepursuit/path/test_demoline2.csv")
 
     global speed_factors
 
