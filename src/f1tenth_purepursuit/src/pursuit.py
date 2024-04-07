@@ -24,14 +24,14 @@ frame_id = "map"
 
 raceline = None
 steering_marker_pub = rospy.Publisher(
-    "/car_4/steering_angle_marker", Marker, queue_size=1
+    "/car_8/steering_angle_marker", Marker, queue_size=1
 )
 # Publishers for sending driving commands and visualizing the control polygon
 command_pub = rospy.Publisher(
     "/pure_pursuit/command", AckermannDrive, queue_size=2
 )
 polygon_pub = rospy.Publisher(
-    "/car_4/purepursuit_control/visualize",
+    "/car_8/purepursuit_control/visualize",
     PolygonStamped,
     queue_size=1,
 )
@@ -44,8 +44,8 @@ angle_pub = rospy.Publisher("/pure_pursuit/angle", AckermannDrive, queue_size=10
 global wp_seq
 global curr_polygon
 
-max_speed = 45.0
-min_speed = 2.0
+max_speed = 48.0
+min_speed = 4.0
 
 speed_factors = []
 
@@ -56,7 +56,7 @@ control_polygon = PolygonStamped()
 def construct_path():
     # Function to construct the path from a CSV file
     # TODO: Modify this path to match the folder where the csv file containing the path is located.
-    file_path = os.path.expanduser("~/catkin_ws/src/f1tenth_purepursuit/path/test_demoline2.csv")
+    file_path = os.path.expanduser("~/catkin_ws/src/f1tenth_purepursuit/path/demoline20_smooth.csv")
 
     global speed_factors
 
@@ -198,7 +198,7 @@ def purepursuit_control_node(data):
     # target_x, target_y = rotated_x, rotated_y
     y_t = rotated_y
     x_t = rotated_x
-    steering_offset = -2.4
+    steering_offset = 6
     dist_to_goal = math.sqrt(x_t * x_t + y_t * y_t)
     alpha = math.asin(y_t / dist_to_goal)
     steering_angle = (
@@ -245,7 +245,7 @@ def purepursuit_control_node(data):
     # )
 
 
-def publish_steering_marker(steering_angle, frame_id="car_4_laser"):
+def publish_steering_marker(steering_angle, frame_id="car_8_laser"):
     steering_marker = Marker()
     steering_marker.header.frame_id = frame_id
     steering_marker.header.stamp = rospy.Time.now()
@@ -285,7 +285,7 @@ if __name__ == "__main__":
             construct_path()
 
         rospy.Subscriber(
-            "/car_4/particle_filter/viz/inferred_pose",
+            "/car_8/particle_filter/viz/inferred_pose",
             PoseStamped,
             purepursuit_control_node,
         )
