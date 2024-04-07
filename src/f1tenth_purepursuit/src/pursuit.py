@@ -47,6 +47,10 @@ global curr_polygon
 max_speed = 48.0
 min_speed = 4.0
 
+# Global variable to control speed halving
+sandbag = False
+sandbag_factor = 0.6
+
 speed_factors = []
 
 wp_seq = 0
@@ -224,8 +228,11 @@ def purepursuit_control_node(data):
     global min_speed
 
     # uncomment when ready
+    global sandbag_factor
     current_speed_factor = speed_factors[base_proj_idx]
     dynamic_speed = current_speed_factor * (max_speed - min_speed) + min_speed
+    if sandbag and current_speed_factor > 0.9:
+        dynamic_speed = dynamic_speed * sandbag_factor
     command.speed = dynamic_speed
 
     command_pub.publish(command)
@@ -276,10 +283,16 @@ def publish_steering_marker(steering_angle, frame_id="car_8_laser"):
     steering_marker_pub.publish(steering_marker)
 
 
+def toggle_speed_callback(event):
+    global sandbag
+    sandbag = not sandbag
+
 
 if __name__ == "__main__":
     try:
         rospy.init_node("pure_pursuit", anonymous=True)
+        rospy.Timer(rospy.Duration(60), toggle_speed_callback)
+
         if not plan:
             rospy.loginfo("obtaining trajectory")
             construct_path()
